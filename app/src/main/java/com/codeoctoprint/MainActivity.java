@@ -7,9 +7,7 @@ import android.os.Bundle;
 
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
@@ -41,10 +39,10 @@ public class MainActivity extends AppCompatActivity {
                 // TODO open app
 
                 // TEMP Activity to feel successful
-                Intent i = new Intent(MainActivity.this, test.class); // Your list's Intent
-                i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
-                startActivity(i);
-                finish();
+                Intent i2 = new Intent(MainActivity.this, test.class); // Your list's Intent
+                i2.setFlags(i2.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
+                startActivity(i2);
+                finish(); // foo
             } else {
                 Intent i = new Intent(MainActivity.this, apiKeyGetter.class); // Your list's Intent
                 i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
