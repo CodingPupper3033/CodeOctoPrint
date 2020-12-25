@@ -7,6 +7,7 @@ import android.os.Bundle;
 
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,23 +26,30 @@ public class MainActivity extends AppCompatActivity {
 
 
         // Set the settings file
-        try {
-            settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
-        } catch (IOException e) {
-            e.printStackTrace();
+        while (settings == null) {
+            try {
+                settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         // Determine whether we need API Key
 
         try {
-            if (settings.getSettingsFile().has("api_key")) {
+            if (settings.getSettingsJSON().has("api_key")) {
                 // TODO open app
+
+                // TEMP Activity to feel successful
+                Intent i = new Intent(MainActivity.this, test.class); // Your list's Intent
+                i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
+                startActivity(i);
+                finish();
             } else {
-                // TODO Open api key place thing
                 Intent i = new Intent(MainActivity.this, apiKeyGetter.class); // Your list's Intent
                 i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
                 startActivity(i);
-
+                finish();
             }
         } catch (IOException | JSONException e) {
             System.exit(0);

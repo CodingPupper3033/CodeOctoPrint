@@ -49,21 +49,21 @@ public class SettingsJSON {
         }
     }
 
-    public JSONObject getSettingsFile() throws IOException, JSONException {
+    public JSONObject getSettingsJSON() throws IOException, JSONException {
         Scanner myReader = new Scanner(file);
         if (myReader.hasNextLine()) {
             String fileString = myReader.nextLine();
-            Log.d(TAG, "File contains " + fileString);
+            //Log.d(TAG, "File contains " + fileString);
             return new JSONObject(fileString);
         } else {
             Log.d(TAG, "File is empty");
-            setSettingsFileJSON(new JSONObject("{}"));
+            setSettingsJSON(new JSONObject("{}"));
             return new JSONObject("{}");
         }
 
     }
 
-    public void setSettingsFileJSON(JSONObject jsonObject) throws IOException {
+    public void setSettingsJSON(JSONObject jsonObject) throws IOException {
         String stringJSONObject = jsonObject.toString();
         FileWriter writer = new FileWriter(file);
         writer.write(stringJSONObject);
