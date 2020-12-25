@@ -19,7 +19,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Hide the title bar
+        try{ this.getSupportActionBar().hide(); } catch (NullPointerException e){}
         setContentView(R.layout.activity_main);
+
 
         // Set the settings file
         try {
@@ -35,9 +38,9 @@ public class MainActivity extends AppCompatActivity {
                 // TODO open app
             } else {
                 // TODO Open api key place thing
-                //Intent i = new Intent(MainActivity.this, apiKeyGetter.class); // Your list's Intent
-                //i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
-                //startActivity(i);
+                Intent i = new Intent(MainActivity.this, apiKeyGetter.class); // Your list's Intent
+                i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
+                startActivity(i);
 
             }
         } catch (IOException | JSONException e) {
