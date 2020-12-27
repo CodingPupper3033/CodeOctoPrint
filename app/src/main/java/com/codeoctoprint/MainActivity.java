@@ -11,9 +11,16 @@ import android.os.Bundle;
 import org.json.JSONException;
 
 import java.io.IOException;
+import java.time.DateTimeException;
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
+    // Settings
     public static final String SETTINGS_FILE_NAME = "settings.json";
+
+    // Disconnect
+    public static final int DISCONNECT_TIME_MAX = 30000;
+
 
     // Progress bar notification
     public static final String CHANNEL_PROGRESSBAR_ID = "progressBar";

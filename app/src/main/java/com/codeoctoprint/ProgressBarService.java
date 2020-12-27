@@ -1,5 +1,7 @@
 package com.codeoctoprint;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -14,7 +16,6 @@ import com.android.volley.Response;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONException;
@@ -25,6 +26,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static com.codeoctoprint.MainActivity.CHANNEL_PROGRESSBAR_ID;
+import static com.codeoctoprint.MainActivity.DISCONNECT_TIME_MAX;
 import static com.codeoctoprint.MainActivity.NOTIFICATION_PROGRESSBAR_ID;
 import static com.codeoctoprint.MainActivity.SETTINGS_FILE_NAME;
 import static com.codeoctoprint.MainActivity.UPDATE_NOTIFICATION_DELAY;
@@ -33,6 +35,8 @@ public class ProgressBarService extends Service {
     public static final String TAG = CHANNEL_PROGRESSBAR_ID + " Notification";
 
     private Timer timer;
+
+    private int disconnectedTime = 0;
 
     @Nullable
     @Override
@@ -48,6 +52,7 @@ public class ProgressBarService extends Service {
         return START_STICKY;
     }
 
+    // TODO Might want to show a cancel button and pause/resume button
     public void showNotificationConnecting() {
         Intent notificationIntent = new Intent(this, MainActivity.class);
 
@@ -78,10 +83,8 @@ public class ProgressBarService extends Service {
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
                 .setSmallIcon(R.drawable.ic_notification_icon)
-                // TODO Add time left
                 .setContentTitle("Unable to connect to Octoprint")
-                .setColor(16737792) // Orange
-                ;
+                .setColor(16737792); // Orange
 
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
@@ -132,6 +135,10 @@ public class ProgressBarService extends Service {
 
         @Override
         public void onResponse(JSONObject response) {
+            // Not disconnected
+            disconnectedTime = 0;
+
+            // Log response
             Log.d("foo", response.toString());
         }
     }
@@ -141,8 +148,15 @@ public class ProgressBarService extends Service {
         public void onErrorResponse(VolleyError error) {
             Log.d(TAG, error.toString());
             if (error instanceof TimeoutError) {
-                // TODO Setting to hide notification if it can't connect
-                showNotificationCantConnect();
+                if (disconnectedTime >= DISCONNECT_TIME_MAX && DISCONNECT_TIME_MAX != -1) {
+                    hideNotification();
+                } else {
+                    disconnectedTime += UPDATE_NOTIFICATION_DELAY;
+                    showNotificationCantConnect();
+                }
+            } else {
+                // Not disconnected per say
+                disconnectedTime = 0;
             }
 
         }
