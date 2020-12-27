@@ -33,9 +33,9 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class apiKeyGetter extends AppCompatActivity {
-    final String SETTINGS_FILE_NAME = "settings.json";
+import static com.codeoctoprint.MainActivity.SETTINGS_FILE_NAME;
 
+public class apiKeyGetter extends AppCompatActivity {
     SettingsJSON settings;
 
     @Override
