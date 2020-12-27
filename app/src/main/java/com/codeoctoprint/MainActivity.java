@@ -18,6 +18,7 @@ public class MainActivity extends AppCompatActivity {
     // Progress bar notification
     public static final String CHANNEL_PROGRESSBAR_ID = "progressBar";
     public static final int NOTIFICATION_PROGRESSBAR_ID = 1;
+    public static final long UPDATE_NOTIFICATION_DELAY = 5000;
 
     SettingsJSON settings;
 
@@ -41,22 +42,20 @@ public class MainActivity extends AppCompatActivity {
         // Determine whether we need API Key
 
         try {
+            Intent intent;
             if (settings.getSettingsJSON().has("api_key")) {
+                // Create the ability for notifications
                 createNotificationChannels();
-                // TODO open app
 
-                // TEMP open test activity
-                Intent i = new Intent(MainActivity.this, test.class); // Your list's Intent
-                i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
-                startActivity(i);
-                finish();
-
+                // Open Control Activity
+                intent = new Intent(MainActivity.this, ControlActivity.class); // Your list's Intent
             } else {
-                Intent i = new Intent(MainActivity.this, apiKeyGetter.class); // Your list's Intent
-                i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
-                startActivity(i);
-                finish();
+                // Open API Getter Activity
+                intent = new Intent(MainActivity.this, APIKeyGetter.class); // Your list's Intent
             }
+            intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
+            startActivity(intent);
+            finish();
         } catch (IOException | JSONException e) {
             System.exit(0);
         }
@@ -69,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 NotificationManager.IMPORTANCE_LOW);
 
         progressBar.setDescription("Shows a progressbar of the print progress");
+        progressBar.setShowBadge(false);
 
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.createNotificationChannel(progressBar);

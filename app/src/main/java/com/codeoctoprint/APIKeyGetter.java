@@ -35,7 +35,7 @@ import java.util.TimerTask;
 
 import static com.codeoctoprint.MainActivity.SETTINGS_FILE_NAME;
 
-public class apiKeyGetter extends AppCompatActivity {
+public class APIKeyGetter extends AppCompatActivity {
     SettingsJSON settings;
 
     @Override
@@ -282,7 +282,7 @@ public class apiKeyGetter extends AppCompatActivity {
                 int duration = Toast.LENGTH_LONG;
                 Toast toast = Toast.makeText(getApplicationContext(), "Obtained API Key", duration);
                 toast.show();
-                Intent i = new Intent(apiKeyGetter.this, MainActivity.class); // Your list's Intent
+                Intent i = new Intent(APIKeyGetter.this, MainActivity.class); // Your list's Intent
                 i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
                 startActivity(i);
                 finish();
