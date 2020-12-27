@@ -36,4 +36,6 @@ public class ProgressBarService extends Service {
 
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
+
+
 }
