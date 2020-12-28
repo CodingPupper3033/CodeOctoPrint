@@ -22,6 +22,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -35,8 +37,14 @@ public class ProgressBarService extends Service {
     public static final String TAG = CHANNEL_PROGRESSBAR_ID + " Notification";
 
     private Timer timer;
+    private TimerTask timerTaskSeconds;
+
+
+    private int currentPrintTime;
+    private int currentPrintTimeTotal;
 
     private int disconnectedTime = 0;
+    private boolean disconnected = true;
 
     @Nullable
     @Override
@@ -52,7 +60,6 @@ public class ProgressBarService extends Service {
         return START_STICKY;
     }
 
-    // TODO Might want to show a cancel button and pause/resume button
     public void showNotificationConnecting() {
         Intent notificationIntent = new Intent(this, MainActivity.class);
 
@@ -65,32 +72,110 @@ public class ProgressBarService extends Service {
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
 
-    public void showNotificationProgress(double progress) {
-        Intent notificationIntent = new Intent(this, MainActivity.class);
+
+    public void showNotificationAmount(int completed, int secondsLeft) {
+        int daysLeftOut = (int)Math.floor(secondsLeft/(60*60*24));
+        int hoursLeftOut = (int)Math.floor(secondsLeft/(60*60)%24);
+        int minutesLeftOut = (int)Math.floor(secondsLeft/(60)%60);;
+        int secondsLeftOut = secondsLeft%60;
+
+        // Total
+        int total = completed + secondsLeft;
+
+        // Progress
+        double progress = completed*100/total;
+
+        // Format percent left
+        String outP = (int)(progress*100)/100.0 + "%";
+
+        // Format time left
+        String outT = secondsLeftOut + "s";
+        if (minutesLeftOut != 0) {
+            outT = minutesLeftOut + "m " + outT;
+        }
+        if (hoursLeftOut != 0) {
+            outT = hoursLeftOut + "h " + outT;
+        }
+        if (daysLeftOut != 0) {
+            outT = daysLeftOut + "d " + outT;
+        }
+
+        // Update
+        currentPrintTime = completed;
+        currentPrintTimeTotal = total;
+
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
                 .setSmallIcon(R.drawable.ic_notification_icon)
                 // TODO Add time left
-                .setContentTitle("Time left: ")
+                .setContentTitle(outP + " Time left: " + outT)
                 .setColor(16737792) // Orange
-                .setProgress(100, (int)(progress*100),false);
+                .setProgress(100, (int)(progress),false);
+
+        startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
+    }
+
+    public void showNotificationProgress(double progress, int secondsLeft) {
+        int daysLeftOut = (int)Math.floor(secondsLeft/(60*60*24));
+        int hoursLeftOut = (int)Math.floor(secondsLeft/(60*60)%24);
+        int minutesLeftOut = (int)Math.floor(secondsLeft/(60)%60);;
+        int secondsLeftOut = secondsLeft%60;
+
+        // Format percent left
+        String outP = (int)(progress*100)/100.0 + "%";
+
+        // Format time left
+        String outT = secondsLeftOut + "s";
+        if (minutesLeftOut != 0) {
+            outT = minutesLeftOut + "m " + outT;
+        }
+        if (hoursLeftOut != 0) {
+            outT = hoursLeftOut + "h " + outT;
+        }
+        if (daysLeftOut != 0) {
+            outT = daysLeftOut + "d " + outT;
+        }
+
+
+        NotificationCompat.Builder notificationBuilder = getProgressBuilder();
+                notificationBuilder.setContentTitle(outP + " Time left: " + outT);
+                notificationBuilder.setProgress(100, (int)(progress),false);
 
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
 
     public void showNotificationCantConnect() {
-        Intent notificationIntent = new Intent(this, MainActivity.class);
 
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
-                .setSmallIcon(R.drawable.ic_notification_icon)
-                .setContentTitle("Unable to connect to Octoprint")
-                .setColor(16737792); // Orange
+        NotificationCompat.Builder notificationBuilder = getBasicBuilder();
+                notificationBuilder.setContentTitle("Unable to connect to Octoprint");
 
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
 
     public void hideNotification() {
         stopForeground(true);
+    }
+
+    public NotificationCompat.Builder getBasicBuilder() {
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
+                .setSmallIcon(R.drawable.ic_notification_icon)
+                .setColor(16737792); // Orange
+        return notificationBuilder;
+    }
+
+    // TODO Might want to show a cancel button and pause/resume button
+    public NotificationCompat.Builder getProgressBuilder() {
+        NotificationCompat.Builder notificationBuilder = getBasicBuilder();
+        return notificationBuilder;
+    }
+
+    public void onDisconnect() {
+        disconnected = true;
+    }
+
+    public void onConnect() {
+        disconnectedTime = 0;
+        disconnected = false;
     }
 
 
@@ -116,10 +201,15 @@ public class ProgressBarService extends Service {
 
 
                 //Retrieve information about the current job | GET /api/job
-                url = cleaner.combineURL(url, "api/job");
+                // TODO Temp adding ?apikey should use below code if I can get it to work
+                url = cleaner.combineURL(url, "api/job" + "?apikey=" + apiKey);
 
 
-                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, url, new updateProgressbarResponse(), new updateProgressbarErrorResponse());
+                // TODO Can't figure out why it will not allow me to send api key as a param
+                JSONObject params = new JSONObject();
+                params.put("X-Api-Key", apiKey);
+
+                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, url,params, new UpdateProgressbarResponse(), new UpdateProgressbarErrorResponse());
 
                 // Add the request to the RequestQueue.
                 queue.add(jsonRequest);
@@ -131,24 +221,46 @@ public class ProgressBarService extends Service {
         }
     }
 
-    public class updateProgressbarResponse implements Response.Listener<JSONObject> {
-
+    public class UpdateProgressbarResponse implements Response.Listener<JSONObject> {
         @Override
         public void onResponse(JSONObject response) {
             // Not disconnected
-            disconnectedTime = 0;
+            if (disconnected) {
+                onConnect();
+            }
 
             // Log response
-            Log.d("foo", response.toString());
+            Log.d(TAG, "" + response);
+
+            // Show progress
+            try {
+                JSONObject progressJSON = response.getJSONObject("progress");
+                double completion = progressJSON.getDouble("completion");
+                double printTime = progressJSON.getDouble("printTime");
+                int printTimeLeft = progressJSON.getInt("printTimeLeft");
+
+                // Makes it update every second until it refreshes
+                if (timerTaskSeconds != null) {
+                    timerTaskSeconds.cancel();
+                }
+                timerTaskSeconds = new UpdateProgressTimeEverySecond((int)printTime, (int)printTimeLeft);
+                Timer secondsTimer = new Timer();
+                secondsTimer.scheduleAtFixedRate(timerTaskSeconds,0,1000);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    public class updateProgressbarErrorResponse implements Response.ErrorListener {
+    public class UpdateProgressbarErrorResponse implements Response.ErrorListener {
         @Override
         public void onErrorResponse(VolleyError error) {
             Log.d(TAG, error.toString());
+            Log.d(TAG, error.networkResponse.headers.toString());
             if (error instanceof TimeoutError) {
                 if (disconnectedTime >= DISCONNECT_TIME_MAX && DISCONNECT_TIME_MAX != -1) {
+                    onDisconnect();
                     hideNotification();
                 } else {
                     disconnectedTime += UPDATE_NOTIFICATION_DELAY;
@@ -156,9 +268,26 @@ public class ProgressBarService extends Service {
                 }
             } else {
                 // Not disconnected per say
-                disconnectedTime = 0;
+                onConnect();
             }
 
+        }
+    }
+
+    public class UpdateProgressTimeEverySecond extends TimerTask {
+        private int printTime;
+        private int printTimeLeft;
+        private int secondsPassed = 0;
+
+        public UpdateProgressTimeEverySecond(int printTime, int printTimeLeft) {
+            this.printTime = printTime;
+            this.printTimeLeft = printTimeLeft;
+        }
+        @Override
+        public void run() {
+            showNotificationAmount(printTime+secondsPassed, printTimeLeft-secondsPassed);
+            Log.d(TAG, "run: " + secondsPassed + " " + printTime+secondsPassed);
+            secondsPassed++;
         }
     }
 }

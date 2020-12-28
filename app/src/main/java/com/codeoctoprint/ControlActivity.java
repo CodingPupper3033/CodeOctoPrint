@@ -20,5 +20,8 @@ public class ControlActivity extends AppCompatActivity {
         Intent serviceIntent = new Intent(this, ProgressBarService.class);
         serviceIntent.putExtra(CHANNEL_PROGRESSBAR_ID, "Print Progress Notification");
         ContextCompat.startForegroundService(this, serviceIntent);
+
+        // Update progressbar in Activity with the one in the notification
+        
     }
 }

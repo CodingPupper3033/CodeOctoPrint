@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
     // Progress bar notification
     public static final String CHANNEL_PROGRESSBAR_ID = "progressBar";
     public static final int NOTIFICATION_PROGRESSBAR_ID = 1;
-    public static final long UPDATE_NOTIFICATION_DELAY = 5000;
+    public static final long UPDATE_NOTIFICATION_DELAY = 20000;
 
     SettingsJSON settings;
 
@@ -60,15 +60,16 @@ public class MainActivity extends AppCompatActivity {
                 // Open API Getter Activity
                 intent = new Intent(MainActivity.this, APIKeyGetter.class); // Your list's Intent
             }
-            intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
+            intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
             startActivity(intent);
             finish();
         } catch (IOException | JSONException e) {
-            System.exit(0);
+            finish();
         }
     }
 
     public void createNotificationChannels() {
+        // Progressbar
         NotificationChannel progressBar = new NotificationChannel(
                 CHANNEL_PROGRESSBAR_ID,
                 "Print Progressbar",
@@ -79,5 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.createNotificationChannel(progressBar);
+
+
     }
 }
