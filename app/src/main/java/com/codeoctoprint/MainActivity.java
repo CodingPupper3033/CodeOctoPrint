@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 
 import com.android.volley.AuthFailureError;
@@ -28,6 +29,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
+
+    // TODO You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+    // TODO add liscense https://fontawesome.com/license
+
     // Settings
     public static final String SETTINGS_FILE_NAME = "settings.json";
 
@@ -138,6 +143,9 @@ public class MainActivity extends AppCompatActivity {
                             failedFindingApi++;
                             if (failedFindingApi >= 3) {
                                 // TODO open logout/reconnect page / can't connect
+                                int duration = Toast.LENGTH_LONG;
+                                Toast toast = Toast.makeText(getApplicationContext(), "Unable to connect to Octoprint Server", duration);
+                                toast.show();
                             } else {
                                 // Try again
                                 checkIfApiIsAlive();
