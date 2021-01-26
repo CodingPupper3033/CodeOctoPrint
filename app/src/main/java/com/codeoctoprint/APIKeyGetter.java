@@ -41,27 +41,34 @@ public class APIKeyGetter extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Hide the title bar
+        // Hide the title bar; I don't like it
         try{ this.getSupportActionBar().hide(); } catch (NullPointerException e){}
+
+        // Show this
         setContentView(R.layout.activity_api_key_getter);
 
-        // Set the settings file
+        // Set the settings file, we kind of need it so keep trying until we get it
         while (settings == null) {
             try {
                 settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
             } catch (IOException e) {
+                // How dare it fail
                 e.printStackTrace();
             }
         }
     }
 
+    /** On click of the request api key button
+     * @param v The view responsible for button press
+     */
     public void onClick(View v) {
-        // Hide Keyboard
+        // Hide Keyboard (pain in the bum)
         InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
 
-        // Hide WebView (It may annoy people that they see the accept button then it go poof)
+        // Hide WebView (It may annoy people that they see the accept button then it go poof, this doesn't seem to work but oh well)
         WebView myWebView = (WebView) findViewById(R.id.octoprintWebView);
+        // TODO Try fixing it so it doesn't show when it updates
         myWebView.setVisibility(View.INVISIBLE);
 
         // Request Queue
@@ -85,6 +92,7 @@ public class APIKeyGetter extends AppCompatActivity {
             StringRequest stringRequest = new StringRequest(Request.Method.GET, probeURL, new probeWorkflowResponse(), new probeWorkflowError());
 
             // Add the request to the RequestQueue.
+            // TODO Maybe add a check before this for internet connectivity
             queue.add(stringRequest);
         } else {
             // Toast the user trying to tell them to set a url
@@ -104,15 +112,17 @@ public class APIKeyGetter extends AppCompatActivity {
             int duration = Toast.LENGTH_LONG;
             Toast toast;
 
+            // TODO Figure out exactly wth is happening
             if (error instanceof NoConnectionError) {
-                toast = Toast.makeText(getApplicationContext(), "Unable to connect: Check the URL & Your internet connection", duration);
+                // TODO Check if you are connected to wifi
+                toast = Toast.makeText(getApplicationContext(), "Unable to connect: Check the URL/IP & Your internet connection", duration);
             } else if (error instanceof TimeoutError) {
                 toast = Toast.makeText(getApplicationContext(), "Unable to connect: Is this an Octoprint server?", duration);
             } else if (error.networkResponse.statusCode == 404) {
-                toast = Toast.makeText(getApplicationContext(), "This does not seem to be an OctoPrint server", duration);
+                toast = Toast.makeText(getApplicationContext(), "Unable to connect: This does not seem to be an OctoPrint server", duration);
             } else {
                 // TODO I have no clue what would get us here
-                toast = Toast.makeText(getApplicationContext(), "Got an error from the server: dunno man", duration);
+                toast = Toast.makeText(getApplicationContext(), "Got an error from a server", duration);
             }
             toast.show();
         }
@@ -156,6 +166,11 @@ public class APIKeyGetter extends AppCompatActivity {
         @Override
         public void onErrorResponse(VolleyError error) {
             Log.d("Auth Response", "onErrorResponse: " + error);
+            // TODO Flesh out this bit, figure out why this would happen and either retry or tell the user
+            // Toast the user trying to tell them to set a url
+            int duration = Toast.LENGTH_LONG;
+            Toast toast = Toast.makeText(getApplicationContext(), "Auth Response error", duration);
+            toast.show();
         }
     }
 
@@ -164,7 +179,7 @@ public class APIKeyGetter extends AppCompatActivity {
         @Override
         public void onResponse(JSONObject response) {
             try {
-                // Save Response
+                // Save Response | Saves in settings.json for some reason
                 JSONObject settingsJSON = settings.getSettingsJSON();
                 settingsJSON.put("temp_app_token", response.get("app_token"));
                 settings.setSettingsJSON(settingsJSON);
@@ -250,6 +265,9 @@ public class APIKeyGetter extends AppCompatActivity {
             timer.cancel();
             timer = null;
             int duration = Toast.LENGTH_LONG;
+
+            // TODO But it may not be because user denied
+
             Toast toast = Toast.makeText(getApplicationContext(), "User denied access; Unable to get API Key", duration);
             toast.show();
         }
@@ -282,6 +300,8 @@ public class APIKeyGetter extends AppCompatActivity {
                 int duration = Toast.LENGTH_LONG;
                 Toast toast = Toast.makeText(getApplicationContext(), "Obtained API Key", duration);
                 toast.show();
+
+                // Get to Activity Control activity
                 Intent i = new Intent(APIKeyGetter.this, MainActivity.class); // Your list's Intent
                 i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
                 startActivity(i);

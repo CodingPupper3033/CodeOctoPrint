@@ -1,7 +1,5 @@
 package com.codeoctoprint;
 
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -22,8 +20,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -39,6 +35,7 @@ public class ProgressBarService extends Service {
     private Timer timer;
     private TimerTask timerTaskSeconds;
 
+    private NotificationCompat.Builder notificationBuilder;
 
     private int currentPrintTime;
     private int currentPrintTimeTotal;
@@ -61,17 +58,17 @@ public class ProgressBarService extends Service {
     }
 
     public void showNotificationConnecting() {
-        Intent notificationIntent = new Intent(this, MainActivity.class);
 
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
+        notificationBuilder = getBasicBuilder()
                 .setSmallIcon(R.drawable.ic_notification_icon)
                 .setContentTitle("Connecting to OctoPrint")
                 .setColor(16737792) // Orange
                 .setProgress(0, 0,true);
 
+        ControlActivity.progressBarPrint.setIndeterminate(true);
+
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
-
 
     public void showNotificationAmount(int completed, int secondsLeft) {
         int daysLeftOut = (int)Math.floor(secondsLeft/(60*60*24));
@@ -105,13 +102,14 @@ public class ProgressBarService extends Service {
         currentPrintTimeTotal = total;
 
 
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
-                .setSmallIcon(R.drawable.ic_notification_icon)
+        notificationBuilder = getProgressBuilder()
                 // TODO Add time left
                 .setContentTitle(outP + " Time left: " + outT)
-                .setColor(16737792) // Orange
                 .setProgress(100, (int)(progress),false);
 
+        ControlActivity.progressBarPrint.setIndeterminate(false);
+        ControlActivity.progressBarPrint.setMax(100);
+        ControlActivity.progressBarPrint.setProgress((int)(progress));
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
 
@@ -141,31 +139,57 @@ public class ProgressBarService extends Service {
                 notificationBuilder.setContentTitle(outP + " Time left: " + outT);
                 notificationBuilder.setProgress(100, (int)(progress),false);
 
+        ControlActivity.progressBarPrint.setIndeterminate(false);
+        ControlActivity.progressBarPrint.setMax(100);
+        ControlActivity.progressBarPrint.setProgress((int)(progress));
+
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
 
     public void showNotificationCantConnect() {
 
-        NotificationCompat.Builder notificationBuilder = getBasicBuilder();
-                notificationBuilder.setContentTitle("Unable to connect to Octoprint");
+        notificationBuilder = getBasicBuilder()
+                .setContentTitle("Unable to connect to Octoprint");
+
+        ControlActivity.progressBarPrint.setIndeterminate(true);
+
+        startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
+    }
+
+    public void showNotificationNotPrinting() {
+
+        notificationBuilder = getBasicBuilder()
+                .setContentTitle("Octoprint is not printing");
+
+        ControlActivity.progressBarPrint.setIndeterminate(true);
 
         startForeground(NOTIFICATION_PROGRESSBAR_ID, notificationBuilder.build());
     }
 
     public void hideNotification() {
+        ControlActivity.progressBarPrint.setIndeterminate(true);
         stopForeground(true);
+
     }
 
-    public NotificationCompat.Builder getBasicBuilder() {
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
+    public void createNotificationBuilder() {
+        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_PROGRESSBAR_ID)
                 .setSmallIcon(R.drawable.ic_notification_icon)
-                .setColor(16737792); // Orange
+                .setColor(16737792) // Orange
+                .setOnlyAlertOnce(true);
+    }
+
+
+    public NotificationCompat.Builder getBasicBuilder() {
+        if (notificationBuilder == null) {
+            createNotificationBuilder();
+        }
         return notificationBuilder;
     }
 
     // TODO Might want to show a cancel button and pause/resume button
     public NotificationCompat.Builder getProgressBuilder() {
-        NotificationCompat.Builder notificationBuilder = getBasicBuilder();
+        notificationBuilder = getBasicBuilder();
         return notificationBuilder;
     }
 
@@ -230,22 +254,32 @@ public class ProgressBarService extends Service {
             }
 
             // Log response
-            Log.d(TAG, "" + response);
+            Log.d(TAG, "Response " + response);
 
             // Show progress
             try {
                 JSONObject progressJSON = response.getJSONObject("progress");
-                double completion = progressJSON.getDouble("completion");
-                double printTime = progressJSON.getDouble("printTime");
-                int printTimeLeft = progressJSON.getInt("printTimeLeft");
+                if (!progressJSON.isNull("printTime") && !progressJSON.isNull("printTimeLeft")) {
+                    double completion = progressJSON.getDouble("completion");
+                    double printTime = progressJSON.getDouble("printTime");
+                    int printTimeLeft = progressJSON.getInt("printTimeLeft");
 
-                // Makes it update every second until it refreshes
-                if (timerTaskSeconds != null) {
-                    timerTaskSeconds.cancel();
+
+                    // Makes it update every second until it refreshes
+                    if (timerTaskSeconds != null) {
+                        timerTaskSeconds.cancel();
+                    }
+                    timerTaskSeconds = new UpdateProgressTimeEverySecond((int)printTime, (int)printTimeLeft);
+                    Timer secondsTimer = new Timer();
+                    secondsTimer.scheduleAtFixedRate(timerTaskSeconds,0,1000);
+                } else {
+                    // No current print job running
+                    if (timerTaskSeconds != null) {
+                        timerTaskSeconds.cancel();
+                    }
+                    showNotificationNotPrinting();
                 }
-                timerTaskSeconds = new UpdateProgressTimeEverySecond((int)printTime, (int)printTimeLeft);
-                Timer secondsTimer = new Timer();
-                secondsTimer.scheduleAtFixedRate(timerTaskSeconds,0,1000);
+
 
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -257,7 +291,6 @@ public class ProgressBarService extends Service {
         @Override
         public void onErrorResponse(VolleyError error) {
             Log.d(TAG, error.toString());
-            Log.d(TAG, error.networkResponse.headers.toString());
             if (error instanceof TimeoutError) {
                 if (disconnectedTime >= DISCONNECT_TIME_MAX && DISCONNECT_TIME_MAX != -1) {
                     onDisconnect();
@@ -287,7 +320,10 @@ public class ProgressBarService extends Service {
         public void run() {
             showNotificationAmount(printTime+secondsPassed, printTimeLeft-secondsPassed);
             Log.d(TAG, "run: " + secondsPassed + " " + printTime+secondsPassed);
-            secondsPassed++;
+            if (!(printTime+secondsPassed >= printTimeLeft-secondsPassed)) {
+                secondsPassed++;
+            }
+
         }
     }
 }
