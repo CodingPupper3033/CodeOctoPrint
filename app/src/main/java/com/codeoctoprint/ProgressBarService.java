@@ -8,6 +8,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -20,6 +21,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -225,15 +228,21 @@ public class ProgressBarService extends Service {
 
 
                 //Retrieve information about the current job | GET /api/job
-                // TODO Temp adding ?apikey should use below code if I can get it to work
-                url = cleaner.combineURL(url, "api/job" + "?apikey=" + apiKey);
+                url = cleaner.combineURL(url, "api/job");
 
-
-                // TODO Can't figure out why it will not allow me to send api key as a param
                 JSONObject params = new JSONObject();
                 params.put("X-Api-Key", apiKey);
 
-                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, url,params, new UpdateProgressbarResponse(), new UpdateProgressbarErrorResponse());
+                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, url,params, new UpdateProgressbarResponse(), new UpdateProgressbarErrorResponse())
+                {
+                    @Override
+                    public Map<String, String> getHeaders() throws AuthFailureError {
+                        Map<String, String> params = new HashMap<String, String>();
+                        params.put("X-Api-Key", apiKey);
+
+                        return params;
+                    }
+                };
 
                 // Add the request to the RequestQueue.
                 queue.add(jsonRequest);
