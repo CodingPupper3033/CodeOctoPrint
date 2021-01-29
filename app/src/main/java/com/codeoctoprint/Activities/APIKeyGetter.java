@@ -1,6 +1,4 @@
-package com.codeoctoprint;
-
-import androidx.appcompat.app.AppCompatActivity;
+package com.codeoctoprint.Activities;
 
 import android.content.Context;
 import android.content.Intent;
@@ -14,6 +12,8 @@ import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -23,6 +23,9 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.codeoctoprint.R;
+import com.codeoctoprint.SettingsReader;
+import com.codeoctoprint.URLCleanser;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,10 +36,10 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static com.codeoctoprint.MainActivity.SETTINGS_FILE_NAME;
+import static com.codeoctoprint.Activities.MainActivity.SETTINGS_FILE_NAME;
 
 public class APIKeyGetter extends AppCompatActivity {
-    SettingsJSON settings;
+    SettingsReader settings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +53,7 @@ public class APIKeyGetter extends AppCompatActivity {
         // Set the settings file, we kind of need it so keep trying until we get it
         while (settings == null) {
             try {
-                settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
+                settings = new SettingsReader(getFilesDir(), SETTINGS_FILE_NAME);
             } catch (IOException e) {
                 // How dare it fail
                 e.printStackTrace();
@@ -67,7 +70,7 @@ public class APIKeyGetter extends AppCompatActivity {
         imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
 
         // Hide WebView (It may annoy people that they see the accept button then it go poof, this doesn't seem to work but oh well)
-        WebView myWebView = (WebView) findViewById(R.id.octoprintWebView);
+        WebView myWebView = findViewById(R.id.octoprintWebView);
         // TODO Try fixing it so it doesn't show when it updates
         myWebView.setVisibility(View.INVISIBLE);
 
@@ -193,7 +196,7 @@ public class APIKeyGetter extends AppCompatActivity {
                 url = cleaner.clean(url);
 
                 // Show the Server (So the user can accept)
-                WebView myWebView = (WebView) findViewById(R.id.octoprintWebView);
+                WebView myWebView = findViewById(R.id.octoprintWebView);
                 myWebView.setWebViewClient(new WebViewClient());
                 WebSettings webSettings = myWebView.getSettings();
                 webSettings.setJavaScriptEnabled(true);
@@ -216,7 +219,7 @@ public class APIKeyGetter extends AppCompatActivity {
 
     // Poll for Response
     private class pollResponseTimerTask extends TimerTask {
-        private Timer timer;
+        private final Timer timer;
         public pollResponseTimerTask(Timer timer) {
             this.timer = timer;
         }

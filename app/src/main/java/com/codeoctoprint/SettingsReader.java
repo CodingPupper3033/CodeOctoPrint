@@ -10,13 +10,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class SettingsJSON {
+public class SettingsReader {
     final String TAG = "Settings";
 
     File file;
     JSONObject settingJSON;
 
-    public SettingsJSON(File file) throws IOException {
+    public SettingsReader(File file) throws IOException {
         this.file = file;
 
         if (file.exists()) {
@@ -27,7 +27,7 @@ public class SettingsJSON {
         }
     }
 
-    public SettingsJSON(String filePath) throws IOException {
+    public SettingsReader(String filePath) throws IOException {
         this.file = new File(filePath);
 
         if (file.exists()) {
@@ -38,7 +38,7 @@ public class SettingsJSON {
         }
     }
 
-    public SettingsJSON(File filePath, String fileName) throws IOException {
+    public SettingsReader(File filePath, String fileName) throws IOException {
         this.file = new File(filePath, fileName);
 
         if (file.exists()) {

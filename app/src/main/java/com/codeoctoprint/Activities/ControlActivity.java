@@ -1,14 +1,11 @@
-package com.codeoctoprint;
+package com.codeoctoprint.Activities;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-
-import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ProgressBar;
-import android.widget.VideoView;
 
-import static com.codeoctoprint.MainActivity.CHANNEL_PROGRESSBAR_ID;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.codeoctoprint.R;
 
 public class ControlActivity extends AppCompatActivity {
     public static ProgressBar progressBarPrint;
@@ -23,11 +20,11 @@ public class ControlActivity extends AppCompatActivity {
         progressBarPrint = findViewById(R.id.progressBarPrint);
 
         // Start Progressbar Notification
-        Intent serviceIntent = new Intent(this, ProgressBarService.class);
-        serviceIntent.putExtra(CHANNEL_PROGRESSBAR_ID, "Print Progress Notification");
-        ContextCompat.startForegroundService(this, serviceIntent);
+        //Intent serviceIntent = new Intent(this, ProgressBarService.class);
+        //serviceIntent.putExtra(CHANNEL_PROGRESSBAR_ID, "Print Progress Notification");
+        //ContextCompat.startForegroundService(this, serviceIntent);
 
-        // TEMP Show video
-
+        // TEMP
     }
 }
+

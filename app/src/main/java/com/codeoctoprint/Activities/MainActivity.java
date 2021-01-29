@@ -1,4 +1,4 @@
-package com.codeoctoprint;
+package com.codeoctoprint.Activities;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -17,6 +17,9 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.codeoctoprint.R;
+import com.codeoctoprint.SettingsReader;
+import com.codeoctoprint.URLCleanser;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,8 +32,12 @@ public class MainActivity extends AppCompatActivity {
     // Settings
     public static final String SETTINGS_FILE_NAME = "settings.json";
 
-    // Disconnect
-    public static final int DISCONNECT_TIME_MAX = 30000;
+    // Default settings
+    // API Requests
+        // Job
+        public static final long DEFAULT_JOB_REQUEST_DELAY = 20000;
+        public static final int DEFAULT_MAX_ERRORS_BEFORE_DISCONNECT = 3;
+
 
 
     // Progress bar notification
@@ -38,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     public static final int NOTIFICATION_PROGRESSBAR_ID = 1;
     public static final long UPDATE_NOTIFICATION_DELAY = 20000;
 
-    private SettingsJSON settings;
+    private SettingsReader settings;
 
     private int failedFindingApi = 0;
 
@@ -55,29 +62,23 @@ public class MainActivity extends AppCompatActivity {
         // Set the settings file
         while (settings == null) {
             try {
-                settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
+                settings = new SettingsReader(getFilesDir(), SETTINGS_FILE_NAME);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        // Determine whether we need API Key
+        // Make sure we have all needed settings
         try {
-            Intent intent;
-            if (settings.getSettingsJSON().has("api_key")) {
-                // Check if api is there
-                checkIfApiIsAlive();
-            } else {
-                // Open API Getter Activity
-                intent = new Intent(MainActivity.this, APIKeyGetter.class); // Your list's Intent
-                intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
-                startActivity(intent);
-                finish();
-            }
-
-        } catch (IOException | JSONException e) {
-            finish();
+            verifySettings(settings);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
+
+        // Check if API Is there (if so start ControlActivity)
+        checkIfApiIsAlive();
     }
 
     public void createNotificationChannels() {
@@ -101,9 +102,9 @@ public class MainActivity extends AppCompatActivity {
         RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
 
         // Settings
-        SettingsJSON settings = null;
+        SettingsReader settings = null;
         try {
-            settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
+            settings = new SettingsReader(getFilesDir(), SETTINGS_FILE_NAME);
 
             JSONObject settingsJSON = settings.getSettingsJSON();
 
@@ -170,5 +171,21 @@ public class MainActivity extends AppCompatActivity {
         NetworkInfo nInfo = cm.getActiveNetworkInfo();
         boolean connected = nInfo != null && nInfo.isAvailable() && nInfo.isConnected();
         return connected;
+    }
+
+    public void verifySettings(SettingsReader settings) throws IOException, JSONException {
+        // "job_request_delay"
+        if (!settings.getSettingsJSON().has("job_request_delay")) settings.setSettingsJSON(settings.getSettingsJSON().put("job_request_delay",DEFAULT_JOB_REQUEST_DELAY));
+
+        // "max_errors_before_disconnect"
+        if (!settings.getSettingsJSON().has("max_errors_before_disconnect")) settings.setSettingsJSON(settings.getSettingsJSON().put("max_errors_before_disconnect",DEFAULT_MAX_ERRORS_BEFORE_DISCONNECT));
+
+        // "host" or "api_key"
+        if (!settings.getSettingsJSON().has("host") || !settings.getSettingsJSON().has("api_key")) {
+            Intent intent = new Intent(MainActivity.this, APIKeyGetter.class); // Your list's Intent
+            intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
+            startActivity(intent);
+            finish();
+        }
     }
 }

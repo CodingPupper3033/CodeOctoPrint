@@ -1,15 +1,18 @@
-package com.codeoctoprint;
+package com.codeoctoprint.Activities;
+
+import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.os.Bundle;
+import com.codeoctoprint.R;
+import com.codeoctoprint.SettingsReader;
 
 import java.io.IOException;
 
 public class SettingsActivity extends AppCompatActivity {
     final String SETTINGS_FILE_NAME = "settings.json";
 
-    SettingsJSON settings;
+    SettingsReader settings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,7 +22,7 @@ public class SettingsActivity extends AppCompatActivity {
         // Set the settings file
         while (settings == null) {
             try {
-                settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
+                settings = new SettingsReader(getFilesDir(), SETTINGS_FILE_NAME);
             } catch (IOException e) {
                 e.printStackTrace();
             }

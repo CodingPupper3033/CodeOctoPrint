@@ -3,38 +3,27 @@ package com.codeoctoprint;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.TimeoutError;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
+import static com.codeoctoprint.Activities.MainActivity.CHANNEL_PROGRESSBAR_ID;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import static com.codeoctoprint.MainActivity.CHANNEL_PROGRESSBAR_ID;
-import static com.codeoctoprint.MainActivity.DISCONNECT_TIME_MAX;
-import static com.codeoctoprint.MainActivity.NOTIFICATION_PROGRESSBAR_ID;
-import static com.codeoctoprint.MainActivity.SETTINGS_FILE_NAME;
-import static com.codeoctoprint.MainActivity.UPDATE_NOTIFICATION_DELAY;
+//TODO Rewrite this, it dirty
 
 public class ProgressBarService extends Service {
     public static final String TAG = CHANNEL_PROGRESSBAR_ID + " Notification";
 
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+
+
+
+
+    /*
     private Timer timer;
     private TimerTask timerTaskSeconds;
 
@@ -215,7 +204,7 @@ public class ProgressBarService extends Service {
                 RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
 
                 // Settings
-                SettingsJSON settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
+                SettingsReader settings = new SettingsReader(getFilesDir(), SETTINGS_FILE_NAME);
                 JSONObject settingsJSON = settings.getSettingsJSON();
 
                 // Get Host and API Key
@@ -335,4 +324,6 @@ public class ProgressBarService extends Service {
 
         }
     }
+
+     */
 }

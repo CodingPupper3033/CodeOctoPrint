@@ -1,4 +1,4 @@
-package com.codeoctoprint;
+package com.codeoctoprint.Activities;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -15,15 +15,19 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.codeoctoprint.R;
+import com.codeoctoprint.SettingsReader;
+import com.codeoctoprint.URLCleanser;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 
-import static com.codeoctoprint.MainActivity.SETTINGS_FILE_NAME;
+import static com.codeoctoprint.Activities.MainActivity.SETTINGS_FILE_NAME;
 
 public class NoInternetActivity extends AppCompatActivity {
-    SettingsJSON settings;
+    SettingsReader settings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +36,7 @@ public class NoInternetActivity extends AppCompatActivity {
         try{ this.getSupportActionBar().hide(); } catch (NullPointerException e){}
         setContentView(R.layout.activity_no_internet);
 
-        TextView errorView = (TextView) findViewById(R.id.errorMessage);
+        TextView errorView = findViewById(R.id.errorMessage);
 
         // No internet at all
         if (!checkIfConnectedToInternet()) errorView.setText("Cannot connect. Check your internet connection.");
@@ -40,7 +44,7 @@ public class NoInternetActivity extends AppCompatActivity {
         // Set the settings file, we kind of need it so keep trying until we get it
         while (settings == null) {
             try {
-                settings = new SettingsJSON(getFilesDir(), SETTINGS_FILE_NAME);
+                settings = new SettingsReader(getFilesDir(), SETTINGS_FILE_NAME);
             } catch (IOException e) {
                 // How dare it fail
                 e.printStackTrace();
