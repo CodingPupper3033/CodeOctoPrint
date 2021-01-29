@@ -1,14 +1,14 @@
 package com.codeoctoprint;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.util.Log;
-import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -16,23 +16,16 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.time.DateTimeException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
-
-    // TODO You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
-    // TODO add liscense https://fontawesome.com/license
-
     // Settings
     public static final String SETTINGS_FILE_NAME = "settings.json";
 
@@ -130,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
                     new Response.Listener<JSONObject>() {
                         @Override
                         public void onResponse(JSONObject response) {
-                            Log.d("foo","responced");
+                            // Have connectivity
                             Intent intent = new Intent(MainActivity.this, ControlActivity.class); // Your list's Intent
                             intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
                             startActivity(intent);
@@ -143,9 +136,10 @@ public class MainActivity extends AppCompatActivity {
                             failedFindingApi++;
                             if (failedFindingApi >= 3) {
                                 // TODO open logout/reconnect page / can't connect
-                                int duration = Toast.LENGTH_LONG;
-                                Toast toast = Toast.makeText(getApplicationContext(), "Unable to connect to Octoprint Server", duration);
-                                toast.show();
+                                // Failed to connect to the server
+                                Intent intent = new Intent(MainActivity.this, NoInternetActivity.class); // Your list's Intent
+                                startActivity(intent);
+                                finish();
                             } else {
                                 // Try again
                                 checkIfApiIsAlive();
@@ -169,5 +163,12 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean checkIfConnectedToInternet() {
+        ConnectivityManager cm = (ConnectivityManager)getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo nInfo = cm.getActiveNetworkInfo();
+        boolean connected = nInfo != null && nInfo.isAvailable() && nInfo.isConnected();
+        return connected;
     }
 }
