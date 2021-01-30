@@ -43,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     // Progress bar notification
     public static final String CHANNEL_PROGRESSBAR_ID = "progressBar";
     public static final int NOTIFICATION_PROGRESSBAR_ID = 1;
-    public static final long UPDATE_NOTIFICATION_DELAY = 20000;
 
     private SettingsReader settings;
 
@@ -70,6 +69,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Make sure we have all needed settings
         try {
+            // TODO Remove
+                JSONObject temp = settings.getSettingsJSON();
+                temp.remove("job_request_delay");
+                settings.setSettingsJSON(temp);
+
             verifySettings(settings);
         } catch (IOException e) {
             e.printStackTrace();
