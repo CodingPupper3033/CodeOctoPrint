@@ -16,8 +16,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.codeoctoprint.R;
-import com.codeoctoprint.SettingsReader;
-import com.codeoctoprint.URLCleanser;
+import com.codeoctoprint.Useful.SettingsReader;
+import com.codeoctoprint.Useful.URLCleanser;
 
 import org.json.JSONException;
 import org.json.JSONObject;

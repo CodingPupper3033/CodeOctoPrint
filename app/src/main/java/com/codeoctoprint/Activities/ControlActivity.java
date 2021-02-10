@@ -5,9 +5,9 @@ import android.widget.ProgressBar;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.codeoctoprint.APIRequests.Progress.APIRequestJob;
+import com.codeoctoprint.APIConnections.Progress.APIRequestJob;
 import com.codeoctoprint.R;
-import com.codeoctoprint.SettingsReader;
+import com.codeoctoprint.Useful.SettingsReader;
 
 import java.io.IOException;
 
@@ -40,7 +40,7 @@ public class ControlActivity extends AppCompatActivity {
         //ContextCompat.startForegroundService(this, serviceIntent);
 
         // TEMP
-        new APIRequestJob(settings);
+        new APIRequestJob(getApplicationContext(), settings);
     }
 }
 

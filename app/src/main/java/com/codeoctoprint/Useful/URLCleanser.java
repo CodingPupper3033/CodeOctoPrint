@@ -1,4 +1,4 @@
-package com.codeoctoprint;
+package com.codeoctoprint.Useful;
 
 public class URLCleanser {
     public String clean(String path) {

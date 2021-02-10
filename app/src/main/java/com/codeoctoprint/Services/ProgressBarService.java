@@ -1,4 +1,4 @@
-package com.codeoctoprint;
+package com.codeoctoprint.Services;
 
 import android.app.Service;
 import android.content.Intent;

@@ -24,8 +24,8 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.codeoctoprint.R;
-import com.codeoctoprint.SettingsReader;
-import com.codeoctoprint.URLCleanser;
+import com.codeoctoprint.Useful.SettingsReader;
+import com.codeoctoprint.Useful.URLCleanser;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,7 +38,7 @@ import java.util.TimerTask;
 
 import static com.codeoctoprint.Activities.MainActivity.SETTINGS_FILE_NAME;
 
-public class APIKeyGetter extends AppCompatActivity {
+public class APIKeyGetterActivity extends AppCompatActivity {
     SettingsReader settings;
 
     @Override
@@ -305,7 +305,7 @@ public class APIKeyGetter extends AppCompatActivity {
                 toast.show();
 
                 // Get to Activity Control activity
-                Intent i = new Intent(APIKeyGetter.this, MainActivity.class); // Your list's Intent
+                Intent i = new Intent(APIKeyGetterActivity.this, MainActivity.class); // Your list's Intent
                 i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
                 startActivity(i);
                 finish();

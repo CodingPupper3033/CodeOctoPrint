@@ -5,7 +5,7 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.codeoctoprint.R;
-import com.codeoctoprint.SettingsReader;
+import com.codeoctoprint.Useful.SettingsReader;
 
 import java.io.IOException;
 

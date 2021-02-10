@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".Activities.APIKeyGetter">
+    tools:context=".Activities.APIKeyGetterActivity">
     <!-- Top to bottom -->
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline15perTop"

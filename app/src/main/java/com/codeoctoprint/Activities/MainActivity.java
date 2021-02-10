@@ -2,31 +2,21 @@ package com.codeoctoprint.Activities;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
+import com.codeoctoprint.APIConnections.ConnectionStatus;
+import com.codeoctoprint.APIConnections.ConnectionToAPI;
 import com.codeoctoprint.R;
-import com.codeoctoprint.SettingsReader;
-import com.codeoctoprint.URLCleanser;
+import com.codeoctoprint.Useful.SettingsReader;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     // Settings
@@ -46,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
     private SettingsReader settings;
 
-    private int failedFindingApi = 0;
+    private final int failedFindingApi = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,8 +71,23 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        // Check if API Is there (if so start ControlActivity)
-        checkIfApiIsAlive();
+        // Check if we can connect to the API
+        ConnectionToAPI checkIfAlive = new ConnectionToAPI(getApplicationContext(), settings, new ConnectionStatus() {
+            @Override
+            public void onDisconnect(VolleyError error) {
+                Intent intent = new Intent(MainActivity.this, NoInternetActivity.class); // Your list's Intent
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void onConnect() {
+                Intent intent = new Intent(MainActivity.this, ControlActivity.class); // Your list's Intent
+                intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
+                startActivity(intent);
+                finish();
+            }
+        });
     }
 
     public void createNotificationChannels() {
@@ -101,82 +106,6 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void checkIfApiIsAlive() {
-        // Request Queue
-        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
-
-        // Settings
-        SettingsReader settings = null;
-        try {
-            settings = new SettingsReader(getFilesDir(), SETTINGS_FILE_NAME);
-
-            JSONObject settingsJSON = settings.getSettingsJSON();
-
-            // Check whether the api is accessible
-            // Get Host and API Key
-            String host = settingsJSON.getString("host");
-            String apiKey = settingsJSON.getString("api_key");
-
-            // URL
-            URLCleanser cleaner = new URLCleanser();
-            String url = cleaner.clean(host);
-
-            //Check for version (see if the api is there)
-            url = cleaner.combineURL(url, "api/version");
-
-            JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.GET, url,
-                    new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(JSONObject response) {
-                            // Have connectivity
-                            Intent intent = new Intent(MainActivity.this, ControlActivity.class); // Your list's Intent
-                            intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
-                            startActivity(intent);
-                            finish();
-                        }
-                    },
-                    new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            failedFindingApi++;
-                            if (failedFindingApi >= 3) {
-                                // TODO open logout/reconnect page / can't connect
-                                // Failed to connect to the server
-                                Intent intent = new Intent(MainActivity.this, NoInternetActivity.class); // Your list's Intent
-                                startActivity(intent);
-                                finish();
-                            } else {
-                                // Try again
-                                checkIfApiIsAlive();
-                            }
-                        }
-                    }
-            ) {
-                // API Key
-                @Override
-                public Map<String, String> getHeaders() throws AuthFailureError {
-                    Map<String, String> params = new HashMap<String, String>();
-                    params.put("X-Api-Key", apiKey);
-
-                    return params;
-                }
-            };
-
-            queue.add(getRequest);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public boolean checkIfConnectedToInternet() {
-        ConnectivityManager cm = (ConnectivityManager)getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo nInfo = cm.getActiveNetworkInfo();
-        boolean connected = nInfo != null && nInfo.isAvailable() && nInfo.isConnected();
-        return connected;
-    }
-
     public void verifySettings(SettingsReader settings) throws IOException, JSONException {
         // "job_request_delay"
         if (!settings.getSettingsJSON().has("job_request_delay")) settings.setSettingsJSON(settings.getSettingsJSON().put("job_request_delay",DEFAULT_JOB_REQUEST_DELAY));
@@ -186,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
 
         // "host" or "api_key"
         if (!settings.getSettingsJSON().has("host") || !settings.getSettingsJSON().has("api_key")) {
-            Intent intent = new Intent(MainActivity.this, APIKeyGetter.class); // Your list's Intent
+            Intent intent = new Intent(MainActivity.this, APIKeyGetterActivity.class); // Your list's Intent
             intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
             startActivity(intent);
             finish();

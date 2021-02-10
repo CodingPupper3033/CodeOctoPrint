@@ -19,12 +19,12 @@
         <activity android:name=".Activities.ControlActivity" />
 
         <service
-            android:name=".ProgressBarService"
+            android:name=".Services.ProgressBarService"
             android:enabled="true"
             android:exported="true" />
 
         <activity android:name=".Activities.SettingsActivity" />
-        <activity android:name=".Activities.APIKeyGetter">
+        <activity android:name=".Activities.APIKeyGetterActivity">
             android:configChanges="orientation"
             android:screenOrientation="portrait"
         </activity>
