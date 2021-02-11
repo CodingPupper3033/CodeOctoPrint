@@ -8,18 +8,23 @@ import com.android.volley.VolleyError;
 import com.codeoctoprint.APIConnections.ConnectionToAPI;
 import com.codeoctoprint.Useful.SettingsReader;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class APIRequestAPIKey extends ConnectionToAPI {
+    SettingsReader settings;
+
     ArrayList<APIKeyGetterListener> apiKeyGetterListeners;
 
     public APIRequestAPIKey(Context context, SettingsReader settings) {
         super(context, settings, false);
         apiKeyGetterListeners = new ArrayList<APIKeyGetterListener>();
+        this.settings = settings;
     }
 
     public void addKeyGetterListener(APIKeyGetterListener apiKeyGetterListener) {
@@ -45,7 +50,7 @@ public class APIRequestAPIKey extends ConnectionToAPI {
         public void onResponse(String response) {
             // Suggest probing workflow worked
             for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
-                apiKeyGetterListeners.get(i).onSuccessfulProbe();
+                apiKeyGetterListeners.get(i).onSuccessfulProbe(getURL());
             }
 
             // App Name (CodeOctoPrint)
@@ -61,7 +66,20 @@ public class APIRequestAPIKey extends ConnectionToAPI {
         public void onResponse(JSONObject response) {
             // Suggest auth request worked
             for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
-                apiKeyGetterListeners.get(i).onSuccessfulAuth();
+                apiKeyGetterListeners.get(i).onSuccessfulAuth(getURL());
+            }
+
+            try {
+                // Save Response | Saves in settings.json for some reason
+                JSONObject settingsJSON = settings.getSettingsJSON();
+                settingsJSON.put("temp_app_token", response.get("app_token"));
+                settings.setSettingsJSON(settingsJSON);
+
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }

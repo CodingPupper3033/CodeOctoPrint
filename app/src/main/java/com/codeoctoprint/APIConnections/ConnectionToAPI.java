@@ -165,6 +165,38 @@ public class ConnectionToAPI {
         }
         return null;
     }
+    public String getURL() {
+        // Settings
+        JSONObject settingsJSON = null;
+        try {
+            settingsJSON = settings.getSettingsJSON();
+
+            // Get Host
+            String host = settingsJSON.getString("host");
+
+            // "Clean" URL
+            if (!host.isEmpty()) {
+                // Make sure it ends with /
+                if (host.charAt(host.length()-1) != '/') {
+                    host += "/";
+                }
+
+                // Check for http or https tag
+                if (!host.contains("http://") && !host.contains("https://")) {
+                    host = "http://" + host;
+                }
+            } else {
+                host = "http://";
+            }
+
+            return host;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     public String getAPIKey() {
         // Settings

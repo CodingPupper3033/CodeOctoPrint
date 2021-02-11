@@ -128,13 +128,22 @@ public class APIKeyGetterActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onSuccessfulProbe() {
+                    public void onSuccessfulProbe(String host) {
                         Log.d("TAG", "onSuccessfulProbe: ");
                     }
 
                     @Override
-                    public void onSuccessfulAuth() {
+                    public void onSuccessfulAuth(String host) {
                         Log.d("TAG", "onSuccessfulAuth: ");
+                        // Show the Server (So the user can accept)
+                        WebView myWebView = findViewById(R.id.octoprintWebView);
+                        myWebView.setWebViewClient(new WebViewClient());
+                        WebSettings webSettings = myWebView.getSettings();
+                        webSettings.setJavaScriptEnabled(true);
+                        webSettings.setLoadWithOverviewMode(true);
+                        webSettings.setUseWideViewPort(true);
+                        myWebView.loadUrl(host);
+                        myWebView.setVisibility(View.VISIBLE);
                     }
 
                     @Override
