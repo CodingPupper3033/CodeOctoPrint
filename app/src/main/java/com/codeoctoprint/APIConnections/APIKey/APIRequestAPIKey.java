@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class APIRequestAPIKey extends ConnectionToAPI {
     SettingsReader settings;
@@ -41,6 +43,21 @@ public class APIRequestAPIKey extends ConnectionToAPI {
             // Pass down the error
             for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
                 apiKeyGetterListeners.get(i).onError(error);
+            }
+        }
+    }
+
+    private class ReceivedVolleyErrorPoll implements Response.ErrorListener {
+        Timer timer;
+        public ReceivedVolleyErrorPoll(Timer timer) {
+            this.timer = timer;
+        }
+
+        public void onErrorResponse(VolleyError error) {
+            timer.cancel();
+            // Pass down the error
+            for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
+                apiKeyGetterListeners.get(i).onDeniedKey(error);
             }
         }
     }
@@ -75,10 +92,67 @@ public class APIRequestAPIKey extends ConnectionToAPI {
                 settingsJSON.put("temp_app_token", response.get("app_token"));
                 settings.setSettingsJSON(settingsJSON);
 
+                // Start the timer for polling
+                Timer timer = new Timer();
+                timer.scheduleAtFixedRate(new PollResponseTimerTask(timer), 1000, 1000);
+
 
             } catch (JSONException e) {
                 e.printStackTrace();
             } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private class PollResponseTimerTask extends TimerTask {
+        private final Timer timer;
+        public PollResponseTimerTask(Timer timer) {
+            this.timer = timer;
+        }
+
+        @Override
+        public void run() {
+            try {
+                JSONObject settingsJSON = settings.getSettingsJSON();
+                String appToken = settingsJSON.getString("temp_app_token");
+                jsonGetRequestNoAPIKey("plugin/appkeys/request/" + appToken, new PollResponse(timer), new ReceivedVolleyErrorPoll(timer));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private class PollResponse implements Response.Listener<JSONObject> {
+        Timer timer;
+
+        public PollResponse(Timer timer) {
+            this.timer = timer;
+        }
+
+        @Override
+        public void onResponse(JSONObject response) {
+            for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
+                apiKeyGetterListeners.get(i).onPoll(response);
+            }
+            try{
+                if (response.has("message")) {
+                    if (response.getString("message").equals("Awaiting decision")) {
+                        // Still Awaiting decision
+                    } else {
+                        timer.cancel();
+                        new ReceivedVolleyError().onErrorResponse(new VolleyError(response.getString("message")));
+                    }
+                } else if (response.has("api_key")) {
+                    // Give api key
+                    for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
+                        apiKeyGetterListeners.get(i).onObtainKey(response.getString("api_key"));
+                    }
+                    timer.cancel();
+                }
+            } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
