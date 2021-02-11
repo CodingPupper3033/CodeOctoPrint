@@ -11,7 +11,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.codeoctoprint.Useful.SettingsReader;
-import com.codeoctoprint.Useful.URLCleanser;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,11 +23,14 @@ import java.util.Map;
 public class ConnectionToAPI {
     private final Context context;
     private final SettingsReader settings;
+
     private int failedFindingApi = 0;
+    private boolean connectedOnce = false;
 
     private final ArrayList<ConnectionStatus> connectionStatusListeners;
 
-    boolean connected = false;
+    boolean connected;
+
     public ConnectionToAPI(Context context, SettingsReader settings) {
         this.settings = settings;
         this.context = context;
@@ -59,73 +61,145 @@ public class ConnectionToAPI {
     }
 
     public void jsonGetRequest(String path, Response.Listener<JSONObject> listener, Response.ErrorListener errorListener) {
+        JSONObject params = new JSONObject();
+        jsonRequest(path, Request.Method.GET, params, listener, errorListener);
+    }
 
+    public void jsonGetRequestNoAPIKey(String path, Response.Listener<JSONObject> listener, Response.ErrorListener errorListener) {
+        JSONObject params = new JSONObject();
+        jsonRequestNoAPIKey(path, Request.Method.GET, params, listener, errorListener);
+    }
+
+    public void jsonRequestNoAPIKey(String path, int type, JSONObject params, Response.Listener<JSONObject> listener, Response.ErrorListener errorListener) {
+        String url = getURL(path);
+        Log.d("TAG", "jsonRequestNoAPIKey: " + url);
+        makeRequest(
+                new JsonObjectRequest(type, url, params, listener, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        updateConnection();
+                        errorListener.onErrorResponse(error);
+                    }
+                })
+        );
+    }
+
+    public void jsonRequest(String path, int type, JSONObject params, Response.Listener<JSONObject> listener, Response.ErrorListener errorListener) {
+        String url = getURL(path);
+        String apiKey = getAPIKey();
+        makeRequest(
+                new JsonObjectRequest(type, url, params, listener, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        updateConnection();
+                        errorListener.onErrorResponse(error);
+                    }
+                }){
+                    @Override
+                    public Map<String, String> getHeaders() throws AuthFailureError {
+                        Map<String, String> params = new HashMap<String, String>();
+                        params.put("X-Api-Key", apiKey);
+                        return params;
+                    }
+                }
+        );
+    }
+
+    public void makeRequest(Request request) {
         // Request Queue
         RequestQueue queue = Volley.newRequestQueue(context);
+        queue.add(request);
+    }
 
+    public String getURL(String path) {
         // Settings
         JSONObject settingsJSON = null;
         try {
             settingsJSON = settings.getSettingsJSON();
 
-            // Get Host and API Key
+            // Get Host
             String host = settingsJSON.getString("host");
-            String apiKey = settingsJSON.getString("api_key");
 
-            // URL
-            URLCleanser cleaner = new URLCleanser();
-            String url = cleaner.clean(host);
-
-
-            //Retrieve information about the current job | GET /api/job
-            url = cleaner.combineURL(url, path);
-
-            JSONObject params = new JSONObject();
-            params.put("X-Api-Key", apiKey);
-
-            JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, url,params, listener, errorListener)
-            {
-                @Override
-                public Map<String, String> getHeaders() throws AuthFailureError {
-                    Map<String, String> params = new HashMap<String, String>();
-                    params.put("X-Api-Key", apiKey);
-                    return params;
+            // "Clean" URL
+            if (!host.isEmpty()) {
+                // Make sure it ends with /
+                if (host.charAt(host.length()-1) != '/') {
+                    host += "/";
                 }
-            };
 
-            // Add the request to the RequestQueue.
-            queue.add(jsonRequest);
+                // Check for http or https tag
+                if (!host.contains("http://") && !host.contains("https://")) {
+                    host = "http://" + host;
+                }
+            } else {
+                host = "http://";
+            }
 
+            String url = host + path;
+
+            return url;
         } catch (IOException e) {
             e.printStackTrace();
         } catch (JSONException e) {
             e.printStackTrace();
         }
+        return null;
+    }
+
+    public String getAPIKey() {
+        // Settings
+        JSONObject settingsJSON = null;
+        try {
+            settingsJSON = settings.getSettingsJSON();
+            return settingsJSON.getString("api_key");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void updateConnection() {
-        Log.d("TAG", "updateConnection: " + failedFindingApi);
-        jsonGetRequest("api/version", new Response.Listener<JSONObject>() {
+        String url = getURL("api/version");
+        String apiKey = getAPIKey();
+
+        JSONObject params = new JSONObject();
+        makeRequest(new JsonObjectRequest(Request.Method.GET, url, params, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                connected = true;
-                for (int i = 0; i < connectionStatusListeners.size(); i++) {
-                    connectionStatusListeners.get(i).onConnect();
+                if (!connected) {
+                    connected = true;
+                    connectedOnce = true;
+                    for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                        connectionStatusListeners.get(i).onConnect();
+                    }
                 }
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.d("TAG", "updateConnection: " + "errored");
                 failedFindingApi++;
+                Log.d("TAG", "onErrorResponse: " + failedFindingApi);
+                // TODO Unhardcode 3
                 if (failedFindingApi >= 3) {
-                    connected = false;
-                    for (int i = 0; i < connectionStatusListeners.size(); i++) {
-                        connectionStatusListeners.get(i).onDisconnect(error);
+                    if (connected || !connectedOnce) {
+                        connected = false;
+                        for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                            connectionStatusListeners.get(i).onDisconnect(error);
+                        }
                     }
                 } else {
                     updateConnection();
                 }
+            }
+        }){
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("X-Api-Key", apiKey);
+                return params;
             }
         });
     }

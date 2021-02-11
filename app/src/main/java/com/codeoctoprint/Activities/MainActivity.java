@@ -64,30 +64,30 @@ public class MainActivity extends AppCompatActivity {
                 temp.remove("job_request_delay");
                 settings.setSettingsJSON(temp);
 
-            verifySettings(settings);
+            if (verifySettings(settings)) {
+                // Check if we can connect to the API
+                ConnectionToAPI checkIfAlive = new ConnectionToAPI(getApplicationContext(), settings, new ConnectionStatus() {
+                    @Override
+                    public void onDisconnect(VolleyError error) {
+                        Intent intent = new Intent(MainActivity.this, NoInternetActivity.class); // Your list's Intent
+                        startActivity(intent);
+                        finish();
+                    }
+
+                    @Override
+                    public void onConnect() {
+                        Intent intent = new Intent(MainActivity.this, ControlActivity.class); // Your list's Intent
+                        intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
+                        startActivity(intent);
+                        finish();
+                    }
+                });
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
-        // Check if we can connect to the API
-        ConnectionToAPI checkIfAlive = new ConnectionToAPI(getApplicationContext(), settings, new ConnectionStatus() {
-            @Override
-            public void onDisconnect(VolleyError error) {
-                Intent intent = new Intent(MainActivity.this, NoInternetActivity.class); // Your list's Intent
-                startActivity(intent);
-                finish();
-            }
-
-            @Override
-            public void onConnect() {
-                Intent intent = new Intent(MainActivity.this, ControlActivity.class); // Your list's Intent
-                intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
-                startActivity(intent);
-                finish();
-            }
-        });
     }
 
     public void createNotificationChannels() {
@@ -106,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void verifySettings(SettingsReader settings) throws IOException, JSONException {
+    public boolean verifySettings(SettingsReader settings) throws IOException, JSONException {
         // "job_request_delay"
         if (!settings.getSettingsJSON().has("job_request_delay")) settings.setSettingsJSON(settings.getSettingsJSON().put("job_request_delay",DEFAULT_JOB_REQUEST_DELAY));
 
@@ -119,6 +119,9 @@ public class MainActivity extends AppCompatActivity {
             intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
             startActivity(intent);
             finish();
+            return false;
         }
+
+        return true;
     }
 }

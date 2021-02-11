@@ -21,8 +21,9 @@ import com.android.volley.Response;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.codeoctoprint.APIConnections.APIKey.APIKeyGetterListener;
+import com.codeoctoprint.APIConnections.APIKey.APIRequestAPIKey;
 import com.codeoctoprint.R;
 import com.codeoctoprint.Useful.SettingsReader;
 import com.codeoctoprint.Useful.URLCleanser;
@@ -85,18 +86,65 @@ public class APIKeyGetterActivity extends AppCompatActivity {
 
         // If the ip box is not empty
         if (!ipInputTextEditor.getText().toString().isEmpty()) {
-            String url = ipInputTextEditor.getText().toString();
-            url = cleaner.clean(url);
+            try {
+                JSONObject settingsJSON = settings.getSettingsJSON();
+                // Host
+                settingsJSON.put("host", ipInputTextEditor.getText().toString());
 
-            //Probe for workflow support | GET /plugin/appkeys/probe
-            String probeURL = cleaner.combineURL(url, "plugin/appkeys/probe");
+                // Save
+                settings.setSettingsJSON(settingsJSON);
 
-            // Request a probe response from the probe URL.
-            StringRequest stringRequest = new StringRequest(Request.Method.GET, probeURL, new probeWorkflowResponse(), new probeWorkflowError());
+                APIRequestAPIKey apiKeyGetter = new APIRequestAPIKey(getApplicationContext(), settings);
+                apiKeyGetter.addKeyGetterListener(new APIKeyGetterListener() {
+                    @Override
+                    public void onObtainKey(String apiKey) {
+                        try {
+                            JSONObject settingsJSON = settings.getSettingsJSON();
 
-            // Add the request to the RequestQueue.
-            // TODO Maybe add a check before this for internet connectivity
-            queue.add(stringRequest);
+                            // Key
+                            settingsJSON.put("api_key", apiKey);
+
+                            // Host
+                            EditText ipInputTextEditor = findViewById(R.id.IPInputEditText);
+                            settingsJSON.put("host", ipInputTextEditor.getText().toString());
+
+                            // Save
+                            settings.setSettingsJSON(settingsJSON);
+
+                            int duration = Toast.LENGTH_LONG;
+                            Toast toast = Toast.makeText(getApplicationContext(), "Obtained API Key", duration);
+                            toast.show();
+
+                            // Get to Activity Control activity
+                            Intent i = new Intent(APIKeyGetterActivity.this, MainActivity.class); // Your list's Intent
+                            i.setFlags(i.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag
+                            startActivity(i);
+                            finish();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onSuccessfulProbe() {
+                        Log.d("TAG", "onSuccessfulProbe: ");
+                    }
+
+                    @Override
+                    public void onError(VolleyError error) {
+                        int duration = Toast.LENGTH_LONG;
+                        Toast toast = Toast.makeText(getApplicationContext(), "Errored", duration);
+                        toast.show();
+                    }
+                });
+                apiKeyGetter.obtainAPIKey();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } else {
             // Toast the user trying to tell them to set a url
             int duration = Toast.LENGTH_LONG;
