@@ -1,7 +1,8 @@
 package com.codeoctoprint.APIConnections;
 
 import android.content.Context;
-import android.util.Log;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -9,6 +10,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.codeoctoprint.Useful.SettingsReader;
 
@@ -70,11 +72,29 @@ public class ConnectionToAPI {
         jsonRequestNoAPIKey(path, Request.Method.GET, params, listener, errorListener);
     }
 
+    public void stringGetRequestNoAPIKey(String path, Response.Listener<String> listener, Response.ErrorListener errorListener) {
+        stringRequestNoAPIKey(path, Request.Method.GET, listener, errorListener);
+    }
+
     public void jsonRequestNoAPIKey(String path, int type, JSONObject params, Response.Listener<JSONObject> listener, Response.ErrorListener errorListener) {
         String url = getURL(path);
-        Log.d("TAG", "jsonRequestNoAPIKey: " + url);
+
         makeRequest(
                 new JsonObjectRequest(type, url, params, listener, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        updateConnection();
+                        errorListener.onErrorResponse(error);
+                    }
+                })
+        );
+    }
+
+    public void stringRequestNoAPIKey(String path, int type, Response.Listener<String> listener, Response.ErrorListener errorListener) {
+        String url = getURL(path);
+
+        makeRequest(
+                new StringRequest(type, url, listener, new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         updateConnection();
@@ -165,42 +185,60 @@ public class ConnectionToAPI {
         String url = getURL("api/version");
         String apiKey = getAPIKey();
 
-        JSONObject params = new JSONObject();
-        makeRequest(new JsonObjectRequest(Request.Method.GET, url, params, new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                if (!connected) {
-                    connected = true;
-                    connectedOnce = true;
-                    for (int i = 0; i < connectionStatusListeners.size(); i++) {
-                        connectionStatusListeners.get(i).onConnect();
-                    }
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                failedFindingApi++;
-                Log.d("TAG", "onErrorResponse: " + failedFindingApi);
-                // TODO Unhardcode 3
-                if (failedFindingApi >= 3) {
-                    if (connected || !connectedOnce) {
-                        connected = false;
+        ConnectivityManager cm = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo nInfo = cm.getActiveNetworkInfo();
+        boolean connectedAtAll = nInfo != null && nInfo.isAvailable() && nInfo.isConnected();
+
+        if (connectedAtAll) {
+            JSONObject params = new JSONObject();
+            makeRequest(new JsonObjectRequest(Request.Method.GET, url, params, new Response.Listener<JSONObject>() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    if (!connected) {
+                        connected = true;
+                        connectedOnce = true;
                         for (int i = 0; i < connectionStatusListeners.size(); i++) {
-                            connectionStatusListeners.get(i).onDisconnect(error);
+                            connectionStatusListeners.get(i).onConnect();
                         }
                     }
-                } else {
-                    updateConnection();
+                }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    try {
+                        failedFindingApi++;
+
+                        int mebd = settings.getSettingsJSON().getInt("max_errors_before_disconnect");
+                        // TODO Unhardcode 3
+                        if (failedFindingApi >= mebd) {
+                            if (connected || !connectedOnce) {
+                                connected = false;
+                                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                                    connectionStatusListeners.get(i).onDisconnect(error);
+                                }
+                            }
+                        } else {
+                            updateConnection();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }){
+                @Override
+                public Map<String, String> getHeaders() throws AuthFailureError {
+                    Map<String, String> params = new HashMap<String, String>();
+                    params.put("X-Api-Key", apiKey);
+                    return params;
+                }
+            });
+        } else {
+            if (connected || !connectedOnce) {
+                connected = false;
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onDisconnect(new VolleyError("No Internet Connection"));
                 }
             }
-        }){
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String, String> params = new HashMap<String, String>();
-                params.put("X-Api-Key", apiKey);
-                return params;
-            }
-        });
+        }
     }
 }

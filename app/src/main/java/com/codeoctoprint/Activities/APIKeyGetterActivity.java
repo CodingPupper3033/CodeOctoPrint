@@ -133,7 +133,13 @@ public class APIKeyGetterActivity extends AppCompatActivity {
                     }
 
                     @Override
+                    public void onSuccessfulAuth() {
+                        Log.d("TAG", "onSuccessfulAuth: ");
+                    }
+
+                    @Override
                     public void onError(VolleyError error) {
+                        Log.d("TAG", "onError: " + error.toString());
                         int duration = Toast.LENGTH_LONG;
                         Toast toast = Toast.makeText(getApplicationContext(), "Errored", duration);
                         toast.show();

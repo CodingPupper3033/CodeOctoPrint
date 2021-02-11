@@ -28,7 +28,7 @@ public class APIRequestAPIKey extends ConnectionToAPI {
 
     public void obtainAPIKey() {
         //Probe for workflow support | GET /plugin/appkeys/probe
-        jsonGetRequestNoAPIKey("plugin/appkeys/probe", new ProbeWorkflowResponse(), new ReceivedVolleyError());
+        stringGetRequestNoAPIKey("plugin/appkeys/probe", new ProbeWorkflowResponse(), new ReceivedVolleyError());
     }
 
     private class ReceivedVolleyError implements Response.ErrorListener {
@@ -40,9 +40,9 @@ public class APIRequestAPIKey extends ConnectionToAPI {
         }
     }
 
-    private class ProbeWorkflowResponse implements Response.Listener<JSONObject> {
+    private class ProbeWorkflowResponse implements Response.Listener<String> {
         @Override
-        public void onResponse(JSONObject response) {
+        public void onResponse(String response) {
             // Suggest probing workflow worked
             for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
                 apiKeyGetterListeners.get(i).onSuccessfulProbe();
@@ -52,14 +52,17 @@ public class APIRequestAPIKey extends ConnectionToAPI {
             Map<String, String> params = new HashMap<String, String>();
             params.put("app", "CodeOctoPrint");
 
-            jsonRequestNoAPIKey("plugin/appkeys/probe", Request.Method.POST, new JSONObject(params), new AuthResponse(), new ReceivedVolleyError());
+            jsonRequestNoAPIKey("plugin/appkeys/request", Request.Method.POST, new JSONObject(params), new AuthResponse(), new ReceivedVolleyError());
         }
     }
 
     private class AuthResponse implements Response.Listener<JSONObject> {
         @Override
         public void onResponse(JSONObject response) {
-
+            // Suggest auth request worked
+            for (int i = 0; i < apiKeyGetterListeners.size(); i++) {
+                apiKeyGetterListeners.get(i).onSuccessfulAuth();
+            }
         }
     }
 }
