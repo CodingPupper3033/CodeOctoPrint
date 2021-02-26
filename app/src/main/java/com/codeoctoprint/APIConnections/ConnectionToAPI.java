@@ -23,20 +23,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ConnectionToAPI {
-    private final Context context;
+    private Context context;
     private final SettingsReader settings;
+    private RequestQueue queue;
 
     private int failedFindingApi = 0;
-    private boolean connectedOnce = false;
 
     private final ArrayList<ConnectionStatus> connectionStatusListeners;
 
+    private boolean connectedOnce = false;
     boolean connected;
 
     public ConnectionToAPI(Context context, SettingsReader settings) {
         this.settings = settings;
         this.context = context;
         connectionStatusListeners = new ArrayList<ConnectionStatus>();
+        queue = Volley.newRequestQueue(context);
 
         updateConnection();
     }
@@ -45,6 +47,7 @@ public class ConnectionToAPI {
         this.settings = settings;
         this.context = context;
         connectionStatusListeners = new ArrayList<ConnectionStatus>();
+        queue = Volley.newRequestQueue(context);
 
         if (connectOnStart) updateConnection();
     }
@@ -54,6 +57,7 @@ public class ConnectionToAPI {
         this.context = context;
         connectionStatusListeners = new ArrayList<ConnectionStatus>();
         connectionStatusListeners.add(connectionStatus);
+        queue = Volley.newRequestQueue(context);
 
         updateConnection();
     }
@@ -108,7 +112,13 @@ public class ConnectionToAPI {
         String url = getURL(path);
         String apiKey = getAPIKey();
         makeRequest(
-                new JsonObjectRequest(type, url, params, listener, new Response.ErrorListener() {
+                new JsonObjectRequest(type, url, params, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        updateConnection(true);
+                        listener.onResponse(response);
+                    }
+                }, new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         updateConnection();
@@ -126,8 +136,7 @@ public class ConnectionToAPI {
     }
 
     public void makeRequest(Request request) {
-        // Request Queue
-        RequestQueue queue = Volley.newRequestQueue(context);
+        queue = Volley.newRequestQueue(context);
         queue.add(request);
     }
 
@@ -226,13 +235,7 @@ public class ConnectionToAPI {
             makeRequest(new JsonObjectRequest(Request.Method.GET, url, params, new Response.Listener<JSONObject>() {
                 @Override
                 public void onResponse(JSONObject response) {
-                    if (!connected) {
-                        connected = true;
-                        connectedOnce = true;
-                        for (int i = 0; i < connectionStatusListeners.size(); i++) {
-                            connectionStatusListeners.get(i).onConnect();
-                        }
-                    }
+                    updateConnection(true);
                 }
             }, new Response.ErrorListener() {
                 @Override
@@ -241,14 +244,8 @@ public class ConnectionToAPI {
                         failedFindingApi++;
 
                         int mebd = settings.getSettingsJSON().getInt("max_errors_before_disconnect");
-                        // TODO Unhardcode 3
                         if (failedFindingApi >= mebd) {
-                            if (connected || !connectedOnce) {
-                                connected = false;
-                                for (int i = 0; i < connectionStatusListeners.size(); i++) {
-                                    connectionStatusListeners.get(i).onDisconnect(error);
-                                }
-                            }
+                            updateConnection(false, error);
                         } else {
                             updateConnection();
                         }
@@ -265,12 +262,97 @@ public class ConnectionToAPI {
                 }
             });
         } else {
-            if (connected || !connectedOnce) {
+            updateConnection(false, "No Internet Connection");
+        }
+    }
+
+    public void updateConnection(boolean connectedNow) {
+        // If it has ever tried to connect before (if we need to send a message no matter what
+        if (!connectedOnce) {
+            connectedOnce = true;
+            if (connectedNow) {
                 connected = false;
                 for (int i = 0; i < connectionStatusListeners.size(); i++) {
-                    connectionStatusListeners.get(i).onDisconnect(new VolleyError("No Internet Connection"));
+                    connectionStatusListeners.get(i).onConnect();
+                }
+            } else {
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onDisconnect(new VolleyError("No Message"));
+                }
+            }
+        } else if (connectedNow != connected) {
+            if (connectedNow) {
+                connected = false;
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onConnect();
+                }
+            } else {
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onDisconnect(new VolleyError("No Message"));
                 }
             }
         }
+    }
+
+    public void updateConnection(boolean connectedNow, String message) {
+        // If it has ever tried to connect before (if we need to send a message no matter what
+        if (!connectedOnce) {
+            connectedOnce = true;
+            if (connectedNow) {
+                connected = false;
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onConnect();
+                }
+            } else {
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onDisconnect(new VolleyError(message));
+                }
+            }
+        } else if (connectedNow != connected) {
+            if (connectedNow) {
+                connected = false;
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onConnect();
+                }
+            } else {
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onDisconnect(new VolleyError("No Message"));
+                }
+            }
+        }
+    }
+
+    public void updateConnection(boolean connectedNow, VolleyError error) {
+        // If it has ever tried to connect before (if we need to send a message no matter what
+        if (!connectedOnce) {
+            connectedOnce = true;
+            if (connectedNow) {
+                connected = false;
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onConnect();
+                }
+            } else {
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onDisconnect(new VolleyError("No Message"));
+                }
+            }
+        } else if (connectedNow != connected) {
+            if (connectedNow) {
+                connected = false;
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onConnect();
+                }
+            } else {
+                for (int i = 0; i < connectionStatusListeners.size(); i++) {
+                    connectionStatusListeners.get(i).onDisconnect(error);
+                }
+            }
+        }
+    }
+
+    public void changeContext(Context context) {
+        this.context = context;
+        queue.stop();
+        queue = Volley.newRequestQueue(context);
     }
 }

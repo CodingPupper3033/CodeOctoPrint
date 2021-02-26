@@ -1,11 +1,14 @@
 package com.codeoctoprint.Activities;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ProgressBar;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.codeoctoprint.APIConnections.Progress.APIRequestJob;
+import com.codeoctoprint.APIConnections.Progress.PrintProgress;
+import com.codeoctoprint.APIConnections.Progress.PrintProgressListener;
 import com.codeoctoprint.R;
 import com.codeoctoprint.Useful.SettingsReader;
 
@@ -39,8 +42,14 @@ public class ControlActivity extends AppCompatActivity {
         //serviceIntent.putExtra(CHANNEL_PROGRESSBAR_ID, "Print Progress Notification");
         //ContextCompat.startForegroundService(this, serviceIntent);
 
-        // TEMP
-        new APIRequestJob(getApplicationContext(), settings);
+        // Job Progress
+        APIRequestJob job = new APIRequestJob(getApplicationContext(), settings);
+        job.addPrintProgressListener(new PrintProgressListener() {
+            @Override
+            public void update(PrintProgress printProgress) {
+                Log.d("TAG", "update: " + printProgress.isConnected());
+            }
+        });
     }
 }
 

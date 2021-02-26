@@ -3,24 +3,17 @@ package com.codeoctoprint.APIConnections.Progress;
 import android.content.Context;
 import android.util.Log;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
+import com.codeoctoprint.APIConnections.ConnectionStatus;
 import com.codeoctoprint.APIConnections.ConnectionToAPI;
 import com.codeoctoprint.Useful.SettingsReader;
-import com.codeoctoprint.Useful.URLCleanser;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -33,7 +26,7 @@ public class APIRequestJob extends ConnectionToAPI {
     Timer requestFromAPITimer;
 
     // Listeners
-    private final ArrayList<PrintProgressListener> PrintProgressListeners;
+    private final ArrayList<PrintProgressListener> printProgressListeners;
 
     // TAG
     private final String TAG = "API Request Job";
@@ -45,12 +38,27 @@ public class APIRequestJob extends ConnectionToAPI {
     private Context context;
 
     public APIRequestJob(Context context, SettingsReader settings) {
-        super(context, settings);
+        super(context, settings, true);
         this.context = context;
-        PrintProgressListeners = new ArrayList<PrintProgressListener>();
+        printProgressListeners = new ArrayList<PrintProgressListener>();
 
         this.settings = settings;
         mainPrintProgress = new PrintProgress();
+
+        // On updates it will update the print progress listener
+        addConnectionStatus(new ConnectionStatus() {
+            @Override
+            public void onDisconnect(VolleyError error) {
+                mainPrintProgress.setConnected(false);
+                updateAll();
+            }
+
+            @Override
+            public void onConnect() {
+                mainPrintProgress.setConnected(true);
+                updateAll();
+            }
+        });
 
 
         try {
@@ -73,53 +81,24 @@ public class APIRequestJob extends ConnectionToAPI {
     }
 
     public void addPrintProgressListener(PrintProgressListener listener) {
-        PrintProgressListeners.add(listener);
+        printProgressListeners.add(listener);
+    }
+
+    private void updateAll() {
+        updateAll(mainPrintProgress);
+    }
+    private void updateAll(PrintProgress printProgress) {
+        for (int i = 0; i < printProgressListeners.size(); i++) {
+            printProgressListeners.get(i).update(printProgress);
+        }
     }
 
     private class RequestFromAPI extends TimerTask {
         @Override
         public void run() {
             Log.d(TAG, "Going to request now!");
-            // Request Queue
-            RequestQueue queue = Volley.newRequestQueue(context);
-
-            // Settings
-            JSONObject settingsJSON = null;
-            try {
-                settingsJSON = settings.getSettingsJSON();
-
-                // Get Host and API Key
-                String host = settingsJSON.getString("host");
-                String apiKey = settingsJSON.getString("api_key");
-
-                // URL
-                URLCleanser cleaner = new URLCleanser();
-                String url = cleaner.clean(host);
-
-
-                //Retrieve information about the current job | GET /api/job
-                url = cleaner.combineURL(url, "api/job");
-
-                JSONObject params = new JSONObject();
-                params.put("X-Api-Key", apiKey);
-
-                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, url,params, new JobResponse(), new JobErrorResponse())
-                {
-                    @Override
-                    public Map<String, String> getHeaders() throws AuthFailureError {
-                        Map<String, String> params = new HashMap<String, String>();
-                        params.put("X-Api-Key", apiKey);
-                        return params;
-                    }
-                };
-
-                // Add the request to the RequestQueue.
-                queue.add(jsonRequest);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+            //Retrieve information about the current job | GET /api/job
+            jsonGetRequest("api/job", new JobResponse(), new JobErrorResponse());
         }
 
     }
@@ -146,9 +125,7 @@ public class APIRequestJob extends ConnectionToAPI {
     private class JobErrorResponse implements Response.ErrorListener {
         @Override
         public void onErrorResponse(VolleyError error) {
-            // TODO Disconnect (3 times till gone stuff)
-            Log.d(TAG, "Bruh");
-
+            updateConnection();
         }
     }
 }

@@ -24,6 +24,18 @@ public class PrintProgress {
         printing = false;
     }
 
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+    }
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public boolean isPrinting() {
+        return printing;
+    }
+
     public double getCompletion() {
         return completion;
     }
