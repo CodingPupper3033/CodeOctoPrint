@@ -46,8 +46,18 @@ public class ControlActivity extends AppCompatActivity {
         APIRequestJob job = new APIRequestJob(getApplicationContext(), settings);
         job.addPrintProgressListener(new PrintProgressListener() {
             @Override
-            public void update(PrintProgress printProgress) {
-                Log.d("TAG", "update: " + printProgress.isConnected());
+            public void printTimeUpdated(PrintProgress printProgress) {
+
+            }
+
+            @Override
+            public void connectionUpdated(PrintProgress printProgress) {
+                Log.d("TAG", "connectionUpdated: " + printProgress.isConnected());
+            }
+
+            @Override
+            public void printingUpdated(PrintProgress printProgress) {
+
             }
         });
     }

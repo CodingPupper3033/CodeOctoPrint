@@ -1,7 +1,6 @@
 package com.codeoctoprint.APIConnections.Progress;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -20,112 +19,101 @@ import java.util.TimerTask;
 public class APIRequestJob extends ConnectionToAPI {
     // Settings
     SettingsReader settings;
-        int MAX_ERRORS_BEFORE_DISCONNECT;
-
-    // Timers
-    Timer requestFromAPITimer;
-
-    // Listeners
-    private final ArrayList<PrintProgressListener> printProgressListeners;
-
-    // TAG
-    private final String TAG = "API Request Job";
 
     // Print Progress
-    private PrintProgress mainPrintProgress;
+    PrintProgress mainPrintProgress = new PrintProgress();
 
-    // Context
-    private Context context;
+    // Print Progress Listeners
+    ArrayList<PrintProgressListener> printProgressListeners;
+
+    // Timer
+    Timer mainTimer;
 
     public APIRequestJob(Context context, SettingsReader settings) {
-        super(context, settings, true);
-        this.context = context;
+        super(context, settings, false);
+        this.settings = settings;
+
         printProgressListeners = new ArrayList<PrintProgressListener>();
 
-        this.settings = settings;
-        mainPrintProgress = new PrintProgress();
+        setupConnectionStatus();
 
-        // On updates it will update the print progress listener
-        addConnectionStatus(new ConnectionStatus() {
+        setupTimer();
+    }
+
+    public APIRequestJob(Context context, SettingsReader settings, PrintProgressListener printProgressListener) {
+        super(context, settings, false);
+        this.settings = settings;
+
+        printProgressListeners = new ArrayList<PrintProgressListener>();
+        addPrintProgressListener(printProgressListener);
+
+        setupConnectionStatus();
+
+        setupTimer();
+    }
+
+    private void setupConnectionStatus() {
+        // Connection Status | What to do when it connects / disconnects
+        ConnectionStatus connectionStatus = new ConnectionStatus() {
             @Override
             public void onDisconnect(VolleyError error) {
-                mainPrintProgress.setConnected(false);
-                updateAll();
+                setConnected(false);
             }
 
             @Override
             public void onConnect() {
-                mainPrintProgress.setConnected(true);
-                updateAll();
+                setConnected(true);
             }
-        });
+        };
+        addConnectionStatus(connectionStatus);
+        updateConnection();
+    }
 
-
+    private void setupTimer() {
+        // Get the delay between requests
         try {
-            MAX_ERRORS_BEFORE_DISCONNECT = settings.getSettingsJSON().getInt("max_errors_before_disconnect");
-            long delay = settings.getSettingsJSON().getLong("job_request_delay");
-
-            // Start Timer for request
-            requestFromAPITimer = new Timer();
-            requestFromAPITimer.scheduleAtFixedRate(new RequestFromAPI(), 0, delay);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
+            long time = settings.getSettingsJSON().getLong("job_request_delay");
+            // Start a timer to update the connection every x seconds
+            mainTimer = new Timer();
+            mainTimer.scheduleAtFixedRate(new requestsTimerTask(), 0, time);
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
     }
 
-    public void changeContext(Context context) {
-        this.context = context;
+    public void addPrintProgressListener(PrintProgressListener printProgressListener) {
+        printProgressListeners.add(printProgressListener);
     }
 
-    public void addPrintProgressListener(PrintProgressListener listener) {
-        printProgressListeners.add(listener);
-    }
+    private void setConnected(boolean connected) {
+        if (connected != mainPrintProgress.isConnected()) {
+            mainPrintProgress.setConnected(connected);
 
-    private void updateAll() {
-        updateAll(mainPrintProgress);
-    }
-    private void updateAll(PrintProgress printProgress) {
-        for (int i = 0; i < printProgressListeners.size(); i++) {
-            printProgressListeners.get(i).update(printProgress);
+            for (PrintProgressListener printProgressListener : printProgressListeners) {
+                printProgressListener.connectionUpdated(mainPrintProgress);
+            }
         }
     }
 
-    private class RequestFromAPI extends TimerTask {
+    // Timer Task for when to requests the api
+    private class requestsTimerTask extends TimerTask{
         @Override
         public void run() {
-            Log.d(TAG, "Going to request now!");
-            //Retrieve information about the current job | GET /api/job
-            jsonGetRequest("api/job", new JobResponse(), new JobErrorResponse());
-        }
-
-    }
-    private class JobResponse implements Response.Listener<JSONObject> {
-        @Override
-        public void onResponse(JSONObject response) {
-            try {
-                if (response.getString("state").contains("Offline") || response.getString("state").contains("Operational")) {
-                    mainPrintProgress = new PrintProgress(false);
-                    // TODO not main thing, call onchange or return
-                } else {
-                    double completion = response.getDouble("completion");
-                    int printTime = response.getInt("printTime");
-                    int printTimeLeft = response.getInt("printTimeLeft");
-                    mainPrintProgress = new PrintProgress(completion, printTime, printTimeLeft);
+            // Make a JSON Request for the job status
+            // Get Current Status | GET /api/job
+            jsonGetRequest("api/job", new Response.Listener<JSONObject>() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    // TODO What to do with the response?
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
 
-        }
-    }
-
-    private class JobErrorResponse implements Response.ErrorListener {
-        @Override
-        public void onErrorResponse(VolleyError error) {
-            updateConnection();
+                }
+            });
         }
     }
 }

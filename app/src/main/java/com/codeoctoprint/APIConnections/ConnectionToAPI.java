@@ -34,6 +34,12 @@ public class ConnectionToAPI {
     private boolean connectedOnce = false;
     boolean connected;
 
+    /**
+     * Updates Connection
+     * @param context
+     * @param settings
+     */
+
     public ConnectionToAPI(Context context, SettingsReader settings) {
         this.settings = settings;
         this.context = context;

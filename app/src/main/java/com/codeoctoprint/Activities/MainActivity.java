@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
 
         // "host" or "api_key"
         if (!settings.getSettingsJSON().has("host") || !settings.getSettingsJSON().has("api_key")) {
-            Intent intent = new Intent(MainActivity.this, APIKeyGetterActivity.class); // Your list's Intent
+            Intent intent = new Intent(MainActivity.this, APIKeyGetterActivity.class);
             intent.setFlags(intent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY); // Adds the FLAG_ACTIVITY_NO_HISTORY flag (We don't want people coming back here)
             startActivity(intent);
             finish();
