@@ -18,6 +18,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class APIRequestJob extends ConnectionToAPI {
+    private static final long DELAY_BETWEEN_TIME_UPDATE = 1000;
+
     // Settings
     SettingsReader settings;
 
@@ -29,6 +31,7 @@ public class APIRequestJob extends ConnectionToAPI {
 
     // Timer
     Timer mainTimer;
+    Timer secondsTimer;
 
     public APIRequestJob(Context context, SettingsReader settings) {
         super(context, settings, false);
@@ -81,6 +84,9 @@ public class APIRequestJob extends ConnectionToAPI {
             // Start a timer to update the connection every x seconds
             mainTimer = new Timer();
             mainTimer.scheduleAtFixedRate(new requestsTimerTask(), 0, time);
+
+            secondsTimer = new Timer();
+            secondsTimer.scheduleAtFixedRate(new secondTimerTask(), 0, DELAY_BETWEEN_TIME_UPDATE);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (JSONException e) {
@@ -121,12 +127,15 @@ public class APIRequestJob extends ConnectionToAPI {
                         // Status
                         if (mainPrintProgress.setStatus(response.getString("state").split(" ")[0]))
                             eventState();
+                        // Time
+                        JSONObject progressJSON = response.getJSONObject("progress");
+                        if (progressJSON.has("printTime") && progressJSON.has("printTimeLeft"))
+                            mainPrintProgress.setTime(progressJSON.getInt("printTime"),progressJSON.getInt("printTimeLeft"));
                     } catch (MalformedInputException e) {
                         e.printStackTrace();
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    // TODO What to do with the response?
                 }
             }, new Response.ErrorListener() {
                 @Override
@@ -134,6 +143,24 @@ public class APIRequestJob extends ConnectionToAPI {
 
                 }
             });
+        }
+    }
+
+    //Timer Task every second to update time
+    private class secondTimerTask extends TimerTask {
+        @Override
+        public void run() {
+
+            switch (mainPrintProgress.getStatus()) {
+                case "Printing":
+                case "Pausing":
+                    mainPrintProgress.changePrintTime((int)DELAY_BETWEEN_TIME_UPDATE/1000);
+                case"Paused":
+                    for (PrintProgressListener printProgressListener : printProgressListeners) {
+                        printProgressListener.printTimeUpdated(mainPrintProgress);
+                    }
+                    break;
+            }
         }
     }
 }

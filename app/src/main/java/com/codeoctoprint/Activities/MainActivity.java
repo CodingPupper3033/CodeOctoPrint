@@ -25,7 +25,9 @@ public class MainActivity extends AppCompatActivity {
     // Default settings
     // API Requests
         // Job
-        public static final long DEFAULT_JOB_REQUEST_DELAY = 20000;
+        //public static final long DEFAULT_JOB_REQUEST_DELAY = 20000;
+        public static final long DEFAULT_JOB_REQUEST_DELAY = 10000;
+
         public static final int DEFAULT_MAX_ERRORS_BEFORE_DISCONNECT = 3;
 
 

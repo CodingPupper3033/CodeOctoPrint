@@ -50,6 +50,12 @@ public class PrintProgress {
         throw new MalformedInputException(status.length());
     }
 
+    public void setTime(int printTime, int printTimeLeft) {
+        this.printTime = printTime;
+        this.printTimeLeft = printTimeLeft;
+        this.completion = (double)printTime/(printTime+printTimeLeft);
+    }
+
     public boolean isConnected() {
         return connected;
     }
@@ -70,13 +76,9 @@ public class PrintProgress {
         return printTimeLeft;
     }
 
-    public void setPrintTime(int printTime, int printTimeLeft) {
-        this.printTime = printTime;
-        this.printTimeLeft = printTimeLeft;
+    public void changePrintTime(int seconds) {
+        this.printTime += seconds;
+        this.printTimeLeft -= seconds;
         this.completion = (double)printTime/(printTime+printTimeLeft);
-    }
-
-    public void changePrintTime(int printTime) {
-        this.printTime += printTime;
     }
 }

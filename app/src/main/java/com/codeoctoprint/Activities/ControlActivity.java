@@ -47,7 +47,7 @@ public class ControlActivity extends AppCompatActivity {
         job.addPrintProgressListener(new PrintProgressListener() {
             @Override
             public void printTimeUpdated(PrintProgress printProgress) {
-
+                Log.d("TAG", "printTimeUpdated: " + printProgress.getCompletion()*100 + "% " + printProgress.getPrintTime());
             }
 
             @Override
