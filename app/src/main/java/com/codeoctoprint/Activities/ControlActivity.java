@@ -56,8 +56,8 @@ public class ControlActivity extends AppCompatActivity {
             }
 
             @Override
-            public void printingUpdated(PrintProgress printProgress) {
-
+            public void stateUpdated(PrintProgress printProgress) {
+                Log.d("TAG", "stateUpdated: " + printProgress.getStatus());
             }
         });
     }

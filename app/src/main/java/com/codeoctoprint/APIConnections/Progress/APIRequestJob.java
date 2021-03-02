@@ -12,6 +12,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.nio.charset.MalformedInputException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -50,6 +51,10 @@ public class APIRequestJob extends ConnectionToAPI {
         setupConnectionStatus();
 
         setupTimer();
+    }
+
+    public PrintProgress getPrintProgress() {
+        return mainPrintProgress;
     }
 
     private void setupConnectionStatus() {
@@ -97,8 +102,14 @@ public class APIRequestJob extends ConnectionToAPI {
         }
     }
 
+    private void eventState() {
+        for (PrintProgressListener printProgressListener : printProgressListeners) {
+            printProgressListener.stateUpdated(mainPrintProgress);
+        }
+    }
+
     // Timer Task for when to requests the api
-    private class requestsTimerTask extends TimerTask{
+    private class requestsTimerTask extends TimerTask {
         @Override
         public void run() {
             // Make a JSON Request for the job status
@@ -106,6 +117,15 @@ public class APIRequestJob extends ConnectionToAPI {
             jsonGetRequest("api/job", new Response.Listener<JSONObject>() {
                 @Override
                 public void onResponse(JSONObject response) {
+                    try {
+                        // Status
+                        if (mainPrintProgress.setStatus(response.getString("state").split(" ")[0]))
+                            eventState();
+                    } catch (MalformedInputException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                     // TODO What to do with the response?
                 }
             }, new Response.ErrorListener() {
